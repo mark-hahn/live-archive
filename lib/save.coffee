@@ -4,11 +4,13 @@ pathUtil = require 'path'
 mkdirp   = require 'mkdirp'
 load     = require './load'
 
-checkFiles = require './checkFiles'
-
-{diff_match_patch; DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
-    require '../vendor/diff_match_patch.js'
 DIFF_BASE = 2
+checkFiles     = require './checkFiles'
+{diff_match_patch, DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
+                      require '../vendor/diff_match_patch.js'
+diffMatchPatch = new diff_match_patch
+
+diff_match = new diff_match_patch
 
 maxSizeIndexBuf =  18 * 256
 maxSizeDatBuf   = 256 * 256
@@ -23,7 +25,7 @@ ensureBufSpace = (len, extra, buf, ofs) ->
   else
     if not ofs then ofs = buf.length
     if ofs + len > buf.length
-      buf = buf.concat [buf, new Buffer(ofs + len - buf.length + extra)]
+      buf = Buffer.concat [buf, new Buffer(ofs + len - buf.length + extra)]
   buf
 
 writeUInt48 = (num, buf, ofs) ->
@@ -36,7 +38,7 @@ writeUInt48 = (num, buf, ofs) ->
 
 writeFlag48 = (buf, ofs) ->
   buf = ensureBufSpace 6, 25, buf, ofs
-  buf.fill 0xff, ofs, 6
+  buf.fill 0xff, ofs, ofs+6
   buf
 
 writeHdr = (time, fileBegPos, fileEndPos, buf, ofs) ->
@@ -55,11 +57,16 @@ getFileLen = (path) ->
     return 0
   stats.size
 
-appendBufToFile = (path, buf, bufLen, maxBufLen) ->
-    if bufLen > maxBufLen
-      fs.appendFile path, buf.slice 0, buflen
-      buf = new Buffer 1e4
-      bufLen = 0
+appendBufsToFiles = (maxData, maxIndex)->
+  if dataBufLen > maxData
+      fs.appendFileSync  dataPath,  dataBuf.slice 0,  dataBufLen
+      dataBuf = null
+      dataBufLen = 0
+
+  if indexBufLen > maxIndex
+      fs.appendFileSync indexPath, indexBuf.slice 0, indexBufLen
+      indexBuf = null
+      indexBufLen = 0
 
 appendDiffs = (diffList) ->
   len = 24
@@ -71,11 +78,11 @@ appendDiffs = (diffList) ->
       len += strBytesLen
 
   dataFileLen = getFileLen dataPath
-  indexBuf = writeHdr Date.now(), dataFileLen, dataFileLen + len, indexBuf
+  indexBuf = writeHdr Date.now(), dataFileLen, dataFileLen + len, indexBuf, indexBufLen
   indexBufLen += 18
 
   dataPos = dataBufLen
-  dataBuf = ensureBufSpace len, 128*1024, dataBuf, dataPos
+  dataBuf = ensureBufSpace len, 512, dataBuf, dataPos
   indexBuf.copy dataBuf, dataPos, indexBufLen-18, indexBufLen
   dataPos += 18
   for diff in diffList
@@ -90,22 +97,21 @@ appendDiffs = (diffList) ->
   writeFlag48 dataBuf, dataPos; dataPos += 6
   dataBufLen = dataPos
 
-  appendBufToFile  dataPath,  dataBuf,  dataBufLen, 1e6
-  appendBufToFile indexPath, indexBuf, indexBufLen, 1e5
+  appendBufsToFiles 1e6, 1e5
 
   null
 
 setPath = (path) ->
   if path isnt curPath
-    if curPath
-      appendBufToFile  dataPath,  dataBuf,  dataBufLen, 0
-      appendBufToFile indexPath, indexBuf, indexBufLen, 0
+    if curPath then appendBufsToFiles 0, 0
     curPath = path
     curText = ''
-    if curPath
+    if path
       indexPath = pathUtil.join path, 'index'
       dataPath  = pathUtil.join path, 'data'
       curText = load.text curPath
+      indexBuf = dataBuf = null
+      indexBufLen = dataBufLen = 0
 
 save = exports
 
@@ -114,10 +120,10 @@ save.text = (path, text, base = no) ->
   if base or curText is ''
     diffList = [[DIFF_BASE, text]]
   else
-    diffList = diff_match_patch.diff_main curText, text
+    diffList = diffMatchPatch.diff_main curText, text
+    if diffList.length is 1 and diffList[0][0] is DIFF_EQUAL
+      return
   appendDiffs diffList
   curText = text
 
 save.flush = -> setPath ''
-
-save.text 'test', 'ABCDEF'

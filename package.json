@@ -1,10 +1,10 @@
 {
   "name": "live-archive",
   "main": "./lib/live-archive",
-  "version": "0.0.0",
-  "description": "A short description of your package",
+  "version": "0.0.1",
+  "description": "Archives package continuously with fast review of old versions",
   "activationEvents": ["live-archive:open"],
-  "repository": "https://github.com/atom/live-archive",
+  "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
   "engines": {
     "atom": ">0.50.0"

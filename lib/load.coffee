@@ -22,9 +22,9 @@ readUInt48 = (buf, ofs) ->
   ms16 * 0x100000000 + ls32
 
 readHdr = (buf, pos) ->
-  time       = buf.readUInt48 pos
-  fileBegPos = buf.readUInt48 pos + 6
-  fileEndPos = buf.readUInt48 pos + 12
+  time       = readUInt48 buf, pos
+  fileBegPos = readUInt48 buf, pos + 6
+  fileEndPos = readUInt48 buf, pos + 12
   {time, fileBegPos, fileEndPos}
 
 pruneTextCache = ->
@@ -73,7 +73,7 @@ getText = (timeTgt) ->
     diffBuf = new Buffer diffLen
     fs.readSync fd, diffBuf, 0, diffLen, fileBegPos
     if diffBuf.readInt8(18, yes) is DIFF_BASE
-      baseText = diffBuf.toString 25
+      baseText = diffBuf.toString 'utf8', 25, diffLen-6
       break
     diffs.unshift {time, diffBuf}
   fs.closeSync fd
