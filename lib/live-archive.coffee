@@ -1,40 +1,11 @@
 
 fs         = require 'fs'
 moment     = require 'moment'
-sloc       = require 'sloc'
-filewalker = require 'filewalker'
-
-suffixes = [
-  'coffee'
-  'js'
-  'c'
-  'cc'
-  'java'
-  'php'
-  'php5'
-  'go'
-  'css'
-  'scss'
-  'less'
-  'py'
-  'html'
-]
-
-pad = (num, w) ->
-  num = '' + num
-  while num.length < w then num = ' ' + num
-  ' ' + num
-
-addAttrs = (sfx, aIn, b) ->
-  a = (aIn[sfx] ?= {})
-  for k, v of b
-    a[k] ?= 0
-    a[k] += v
 
 module.exports =
 
   activate: ->
-    atom.workspaceView.command "line-count:open", => @open()
+    atom.workspaceView.command "live-archive:open", => @open()
 
   open: ->
     text = ''

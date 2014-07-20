@@ -4,6 +4,8 @@ pathUtil = require 'path'
 mkdirp   = require 'mkdirp'
 load     = require './load'
 
+checkFiles = require './checkFiles'
+
 {diff_match_patch; DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
     require '../vendor/diff_match_patch.js'
 DIFF_BASE = 2
@@ -11,16 +13,16 @@ DIFF_BASE = 2
 maxSizeIndexBuf =  18 * 256
 maxSizeDatBuf   = 256 * 256
 
-curPath = ''
+curPath = indexPath = dataPath = ''
 curText = ''
 indexBuf    = dataBuf     = null
 indexBufLen = dataBufLen  = 0
 
 ensureBufSpace = (len, extra, buf, ofs) ->
-  if not buf then buf = new buffer len + extra
+  if not buf then buf = new Buffer len + extra
   else
     if not ofs then ofs = buf.length
-    if ofs + len > buf.length then
+    if ofs + len > buf.length
       buf = buf.concat [buf, new Buffer(ofs + len - buf.length + extra)]
   buf
 
@@ -59,10 +61,7 @@ appendBufToFile = (path, buf, bufLen, maxBufLen) ->
       buf = new Buffer 1e4
       bufLen = 0
 
-appendDiffs = (diffList, path) ->
-  indexPath = pathUtil.join path, 'index'
-  dataPath  = pathUtil.join path, 'data'
-
+appendDiffs = (diffList) ->
   len = 24
   for diff in diffList
     len += 7
@@ -91,21 +90,22 @@ appendDiffs = (diffList, path) ->
   writeFlag48 dataBuf, dataPos; dataPos += 6
   dataBufLen = dataPos
 
-  appendBufToFile indexPath, indexBuf, indexBufLen, 1e5
   appendBufToFile  dataPath,  dataBuf,  dataBufLen, 1e6
+  appendBufToFile indexPath, indexBuf, indexBufLen, 1e5
 
   null
 
 setPath = (path) ->
   if path isnt curPath
-    indexPath = pathUtil.join curPath, 'index'
-    dataPath  = pathUtil.join curPath, 'data'
-    {indexBuf, indexBufLen} =
-        appendBufToFile indexPath, indexBuf, indexBufLen, 0
-    {dataBuf,  dataBufLen}
-        appendBufToFile  dataPath,  dataBuf,  dataBufLen, 0
+    if curPath
+      appendBufToFile  dataPath,  dataBuf,  dataBufLen, 0
+      appendBufToFile indexPath, indexBuf, indexBufLen, 0
     curPath = path
-    curText = load.text path
+    curText = ''
+    if curPath
+      indexPath = pathUtil.join path, 'index'
+      dataPath  = pathUtil.join path, 'data'
+      curText = load.text curPath
 
 save = exports
 
@@ -115,7 +115,9 @@ save.text = (path, text, base = no) ->
     diffList = [[DIFF_BASE, text]]
   else
     diffList = diff_match_patch.diff_main curText, text
-  appendDiffs diffList, path, indexBuf, indexBufLen, dataBuf, dataBufLen
+  appendDiffs diffList
   curText = text
 
 save.flush = -> setPath ''
+
+save.text 'test', 'ABCDEF'

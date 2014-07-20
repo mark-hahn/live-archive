@@ -4,9 +4,10 @@ pathUtil = require 'path'
 mkdirp   = require 'mkdirp'
 binSrch  = require 'binarysearch'
 
-{diff_match_patch; DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
-    require '../vendor/diff_match_patch.js'
-DIFF_BASE = 2
+DIFF_DELETE = -1
+DIFF_INSERT =  1
+DIFF_EQUAL  =  0
+DIFF_BASE   =  2
 
 maxTextCacheSize = 1e6
 
@@ -108,12 +109,12 @@ loadPath = (path) ->
     curPath = path
     textCache = {}
     textCacheSize = 0
-    if path then
+    if path
       indexPath = pathUtil.join path, 'index'
       try
         indexBuf = fs.readFileSync indexPath
       catch e
-        indexBuf = new Buffer()
+        indexBuf = new Buffer(0)
         mkdirp.sync pathUtil.dirname path
         fs.closeSync fs.openSync indexPath, 'a'
       pos = 0
