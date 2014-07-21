@@ -7,7 +7,7 @@ load     = require './load'
 DIFF_BASE = 2
 checkFiles     = require './checkFiles'
 {diff_match_patch, DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
-                      require '../vendor/diff_match_patch.js'
+                      require '../vendor/diff_match_patch_uncompressed.js'
 diffMatchPatch = new diff_match_patch
 
 diff_match = new diff_match_patch
@@ -57,7 +57,7 @@ getFileLen = (path) ->
     return 0
   stats.size
 
-appendBufsToFiles = (maxData, maxIndex)->
+flushBufsToFiles = (maxData, maxIndex)->
   if dataBufLen > maxData
       fs.appendFileSync  dataPath,  dataBuf.slice 0,  dataBufLen
       dataBuf = null
@@ -97,13 +97,13 @@ appendDiffs = (diffList) ->
   writeFlag48 dataBuf, dataPos; dataPos += 6
   dataBufLen = dataPos
 
-  appendBufsToFiles 1e6, 1e5
+  flushBufsToFiles 1e4, 1e3
 
   null
 
 setPath = (path) ->
   if path isnt curPath
-    if curPath then appendBufsToFiles 0, 0
+    if curPath then flushBufsToFiles 0, 0
     curPath = path
     curText = ''
     if path
@@ -125,5 +125,4 @@ save.text = (path, text, base = no) ->
       return
   appendDiffs diffList
   curText = text
-
-save.flush = -> setPath ''
+  flushBufsToFiles 0, 0

@@ -11,7 +11,7 @@ DIFF_BASE   =  2
 
 maxTextCacheSize = 1e6
 
-curPath       = ''
+curPath = indexPath = dataPath = ''
 index         = []
 textCache     = {}
 textCacheSize = 0
@@ -51,6 +51,22 @@ timeToStr = (time) ->
   str = '' + time
   while str.length < 15 then str = '0' + str
   str
+
+getFileLen = (path) ->
+  try
+    stats = fs.statSync path
+  catch e
+    return 0
+  stats.size
+
+getFileLen = (path) ->
+  try
+    stats = fs.statSync path
+  catch e
+    mkdirp.sync pathUtil.dirname path
+    fs.closeSync fs.openSync path, 'a'
+    return 0
+  stats.size
 
 getText = (timeTgt) ->
   if (text = textCache[timeToStr timeTgt]) then return text
@@ -95,7 +111,7 @@ getText = (timeTgt) ->
         when DIFF_DELETE
           curTextPos += dataLen
         when DIFF_INSERT
-          nextText += diffBuf.toString diffPos, diffPos + dataLen
+          nextText += diffBuf.toString 'utf8', diffPos, diffPos + dataLen
           diffPos  += dataLen
     curText = nextText
     if ++cachecount % 5 is 0
@@ -104,7 +120,7 @@ getText = (timeTgt) ->
 
   curText
 
-loadPath = (path) ->
+setPath = (path) ->
   if path isnt curPath
     curPath = path
     textCache = {}
@@ -130,6 +146,16 @@ loadPath = (path) ->
         mkdirp.sync pathUtil.dirname path
         fs.closeSync fs.openSync dataPath, 'a'
 
+  if path
+    indexSize = index.length * 18
+    fileSize  = getFileLen indexPath
+    if indexSize < fileSize
+        indexBuf = fs.readFileSync indexPath
+        for pos in [indexSize...fileSize] by 18
+          index.push readHdr indexBuf, pos
+
 load = exports
 
-load.text = (path, time = Number.MAXINT) -> loadPath path; getText time
+load.text = (path, time = Infinity) ->
+  setPath path
+  getText time
