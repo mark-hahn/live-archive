@@ -4,12 +4,11 @@ pathUtil = require 'path'
 mkdirp   = require 'mkdirp'
 load     = require './load'
 
-DIFF_BASE = 2
-checkFiles     = require './checkFiles'
+DIFF_BASE  = 2
+checkFiles = require './checkFiles'
 {diff_match_patch, DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
                       require '../vendor/diff_match_patch_uncompressed.js'
 diffMatchPatch = new diff_match_patch
-diff_match = new diff_match_patch
 
 saveTime = 0
 curPath = curText = indexPath = dataPath = ''
@@ -56,27 +55,27 @@ appendDelta = (diffList) ->
       deltaLen += strBytesLen
   deltaLen += deltaEndFlagLen
 
-  indexBuf = new Buffer indexEntryLen
+  indexEntryBuf = new Buffer indexEntryLen
   saveTime = Math.max saveTime + 3, Date.now()
   dataFileLen = getFileLen dataPath
-  writeIndexEntry saveTime, dataFileLen, dataFileLen + deltaLen, indexBuf
+  writeIndexEntry saveTime, dataFileLen, dataFileLen + deltaLen, indexEntryBuf
 
-  dataBuf = new Buffer deltaLen
-  indexBuf.copy dataBuf
+  deltaBuf = new Buffer deltaLen
+  indexEntryBuf.copy deltaBuf
   pos = indexEntryLen
   for diff in diffList
     [diffType, diffStr, strBytesLen] = diff
     noStr = diffType in [DIFF_DELETE, DIFF_EQUAL]
     diffLen = (if noStr then diffStr.length else strBytesLen)
-    writeDiffHdr diffType, diffLen, dataBuf, pos
+    writeDiffHdr diffType, diffLen, deltaBuf, pos
     pos += diffHdrLen
     if not noStr
-      dataBuf.write diffStr, pos, strBytesLen
+      deltaBuf.write diffStr, pos, strBytesLen
       pos += strBytesLen
-  dataBuf.fill deltaEndFlagByte, pos
+  deltaBuf.fill deltaEndFlagByte, pos
 
-  fs.appendFileSync  dataPath,  dataBuf
-  fs.appendFileSync indexPath, indexBuf
+  fs.appendFileSync  dataPath,      deltaBuf
+  fs.appendFileSync indexPath, indexEntryBuf
 
 setPath = (path) ->
   if path isnt curPath
@@ -90,7 +89,7 @@ setPath = (path) ->
 save = exports
 
 save.text = (path, text, base = (curText is '')) ->
-  if path is curPath and text is curText then return
+  if path is curPath and text is curText then return saveTime
   setPath path
   diffList = if base then [[DIFF_BASE, text]]   \
                      else diffMatchPatch.diff_main curText, text

@@ -17,6 +17,18 @@ index         = []
 textCache     = {}
 textCacheSize = 0
 
+timeToStr = (time) ->
+  str = '' + time
+  while str.length < 15 then str = '0' + str
+  str
+
+getFileLen = (path) ->
+  try
+    stats = fs.statSync path
+  catch e
+    return 0
+  stats.size
+
 readUInt48 = (buf, ofs) ->
   ms16 = buf.readUInt16BE ofs,   yes
   ls32 = buf.readUInt32BE ofs+2, yes
@@ -30,7 +42,8 @@ readIndexEntry = (buf, pos) ->
   fileEndPos = readUInt48 buf, pos + 14
   {saveTime, fileBegPos, fileEndPos}
 
-diffHdrLen = 8
+diffHdrLen  = 8
+diffTypeOfs = 1
 readDiffHdr = (buf, pos) ->
   # diffVersion = buf.readUInt8 pos, yes
   diffType = buf.readInt8    pos + 1, yes
@@ -60,38 +73,26 @@ pruneTextCache = ->
       if textCacheSize <= maxTextCacheSize then return
   null
 
-timeToStr = (time) ->
-  str = '' + time
-  while str.length < 15 then str = '0' + str
-  str
-
-getFileLen = (path) ->
-  try
-    stats = fs.statSync path
-  catch e
-    return 0
-  stats.size
-
 getText = (timeTgt) ->
   if (text = textCache[timeToStr timeTgt]) then return text
   if index.length is 0 or timeTgt < index[0].saveTime then return ''
 
   idx = binSrch.closest index, timeTgt, (val, find) -> val.saveTime - find
-  saveTime = index[idx].saveTime
-  if timeTgt < saveTime then (if idx then idx-- else return '')
-  if (text = textCache[timeToStr saveTime]) then return text
+  if timeTgt < index[idx].saveTime
+    if idx then idx-- else return ''
+  if (text = textCache[timeToStr index[idx].saveTime]) then return text
 
   fd = fs.openSync pathUtil.join(curPath, 'data'), 'r'
   deltas = []
   for i in [idx..0] by -1
     {saveTime, fileBegPos, fileEndPos} = index[i]
-    if (baseText = textCache[timeToStr saveTime])
-      break
+    if (baseText = textCache[timeToStr saveTime]) then break
     deltaLen = fileEndPos - fileBegPos
     deltaBuf = new Buffer deltaLen
     fs.readSync fd, deltaBuf, 0, deltaLen, fileBegPos
-    {diffType, diffLen} = readDiffHdr deltaBuf, indexEntryLen
-    if diffType is DIFF_BASE
+    firstDiffType = deltaBuf.readInt8 indexEntryLen + diffTypeOfs, yes
+    if firstDiffType is DIFF_BASE
+      {diffLen} = readDiffHdr deltaBuf, indexEntryLen
       diffPos  = indexEntryLen + diffHdrLen
       baseText = deltaBuf.toString 'utf8', diffPos, diffPos + diffLen
       break
