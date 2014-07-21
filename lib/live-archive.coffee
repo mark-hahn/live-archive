@@ -19,10 +19,30 @@ module.exports =
       fs.unlinkSync 'test/index'
     catch e
 
-    save.text 'test', 'ABCDEF'
-    save.text 'test', 'ABCabcDEFdef'
-    save.text 'test', 'ABCabcdef'
+    t1 = save.text 'test', 'ABCDEF'
+    t2 = save.text 'test', 'ABCabcDEFdef'
+
     res = load.text 'test'
-    console.log res is 'ABCabcdef', res
+    console.log 'last1', 'ABCabcDEFdef', res is 'ABCabcDEFdef', res
+
+    t3 = save.text 'test', 'ABCabcdef'
+
+    res = load.text 'test', t2
+    console.log 't2', 'ABCabcDEFdef', res is 'ABCabcDEFdef', res
+
+    res = load.text 'test', t2 + 1
+    console.log 't2+1', 'ABCabcDEFdef', res is 'ABCabcDEFdef', res
+
+    res = load.text 'test', t2 - 1
+    console.log 't2-1', 'ABCDEF', res is 'ABCDEF', res
+
+    res = load.text 'test', 0
+    console.log '0', '', res is '', res
+
+    res = load.text 'test', t3+1
+    console.log 't3+1', 'ABCabcdef', res is 'ABCabcdef', res
+
+    res = load.text 'test'
+    console.log 'last2', 'ABCabcdef', res is 'ABCabcdef', res
 
     console.log 'test finished'

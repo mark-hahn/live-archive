@@ -9,44 +9,32 @@ checkFiles     = require './checkFiles'
 {diff_match_patch, DIFF_DELETE, DIFF_INSERT, DIFF_EQUAL} =
                       require '../vendor/diff_match_patch_uncompressed.js'
 diffMatchPatch = new diff_match_patch
-
 diff_match = new diff_match_patch
 
-maxSizeIndexBuf =  18 * 256
-maxSizeDatBuf   = 256 * 256
-
-curPath = indexPath = dataPath = ''
-curText = ''
-indexBuf    = dataBuf     = null
-indexBufLen = dataBufLen  = 0
-
-ensureBufSpace = (len, extra, buf, ofs) ->
-  if not buf then buf = new Buffer len + extra
-  else
-    if not ofs then ofs = buf.length
-    if ofs + len > buf.length
-      buf = Buffer.concat [buf, new Buffer(ofs + len - buf.length + extra)]
-  buf
+saveTime = 0
+curPath = curText = indexPath = dataPath = ''
 
 writeUInt48 = (num, buf, ofs) ->
-  buf = ensureBufSpace 6, 0, buf, ofs
   ms16 = (num / 0x100000000) & 0xffff
   ls32 = num & 0xffffffff
   buf.writeUInt16BE ms16, ofs,   yes
   buf.writeUInt32BE ls32, ofs+2, yes
-  buf
 
-writeFlag48 = (buf, ofs) ->
-  buf = ensureBufSpace 6, 25, buf, ofs
-  buf.fill 0xff, ofs, ofs+6
-  buf
+indexEntryLen = 20
+writeIndexEntry = (saveTime, fileBegPos, fileEndPos, buf, ofs = 0) ->
+  buf.writeUInt16BE    0,      ofs +  0
+  writeUInt48   saveTime, buf, ofs +  2
+  writeUInt48 fileBegPos, buf, ofs +  8
+  writeUInt48 fileEndPos, buf, ofs + 14
 
-writeHdr = (time, fileBegPos, fileEndPos, buf, ofs) ->
-  buf = ensureBufSpace 18, 18 * 32, buf, ofs
-  buf = writeUInt48 time,       buf, ofs
-  buf = writeUInt48 fileBegPos, buf, ofs +  6
-  buf = writeUInt48 fileEndPos, buf, ofs + 12
-  buf
+diffHdrLen = 8
+writeDiffHdr = (diffType, diffLen, buf, ofs = 0) ->
+  buf.writeUInt8        0,      ofs + 0
+  buf.writeInt8  diffType,      ofs + 1
+  writeUInt48     diffLen, buf, ofs + 2
+
+deltaEndFlagLen  = 6
+deltaEndFlagByte = 0xff
 
 getFileLen = (path) ->
   try
@@ -57,72 +45,55 @@ getFileLen = (path) ->
     return 0
   stats.size
 
-flushBufsToFiles = (maxData, maxIndex)->
-  if dataBufLen > maxData
-      fs.appendFileSync  dataPath,  dataBuf.slice 0,  dataBufLen
-      dataBuf = null
-      dataBufLen = 0
-
-  if indexBufLen > maxIndex
-      fs.appendFileSync indexPath, indexBuf.slice 0, indexBufLen
-      indexBuf = null
-      indexBufLen = 0
-
-appendDiffs = (diffList) ->
-  len = 24
+appendDelta = (diffList) ->
+  deltaLen = indexEntryLen
   for diff in diffList
-    len += 7
-    if diff[0] not in [DIFF_DELETE, DIFF_EQUAL]
-      strBytesLen = Buffer.byteLength diff[1]
+    deltaLen += diffHdrLen
+    [diffType, diffStr] = diff
+    if diffType not in [DIFF_DELETE, DIFF_EQUAL]
+      strBytesLen = Buffer.byteLength diffStr
       diff[2] = strBytesLen
-      len += strBytesLen
+      deltaLen += strBytesLen
+  deltaLen += deltaEndFlagLen
 
+  indexBuf = new Buffer indexEntryLen
+  saveTime = Math.max saveTime + 3, Date.now()
   dataFileLen = getFileLen dataPath
-  indexBuf = writeHdr Date.now(), dataFileLen, dataFileLen + len, indexBuf, indexBufLen
-  indexBufLen += 18
+  writeIndexEntry saveTime, dataFileLen, dataFileLen + deltaLen, indexBuf
 
-  dataPos = dataBufLen
-  dataBuf = ensureBufSpace len, 512, dataBuf, dataPos
-  indexBuf.copy dataBuf, dataPos, indexBufLen-18, indexBufLen
-  dataPos += 18
+  dataBuf = new Buffer deltaLen
+  indexBuf.copy dataBuf
+  pos = indexEntryLen
   for diff in diffList
-    [type, difStr, difLen] = diff
-    dataBuf.writeInt8 type, dataPos++
-    noStr = type in [DIFF_DELETE, DIFF_EQUAL]
-    len = 7 + (if noStr then difStr.length else difLen)
-    writeUInt48 len, dataBuf, dataPos; dataPos += 6
+    [diffType, diffStr, strBytesLen] = diff
+    noStr = diffType in [DIFF_DELETE, DIFF_EQUAL]
+    diffLen = (if noStr then diffStr.length else strBytesLen)
+    writeDiffHdr diffType, diffLen, dataBuf, pos
+    pos += diffHdrLen
     if not noStr
-      dataBuf.write difStr, dataPos, difLen
-      dataPos += difLen
-  writeFlag48 dataBuf, dataPos; dataPos += 6
-  dataBufLen = dataPos
+      dataBuf.write diffStr, pos, strBytesLen
+      pos += strBytesLen
+  dataBuf.fill deltaEndFlagByte, pos
 
-  flushBufsToFiles 1e4, 1e3
-
-  null
+  fs.appendFileSync  dataPath,  dataBuf
+  fs.appendFileSync indexPath, indexBuf
 
 setPath = (path) ->
   if path isnt curPath
-    if curPath then flushBufsToFiles 0, 0
     curPath = path
     curText = ''
     if path
       indexPath = pathUtil.join path, 'index'
       dataPath  = pathUtil.join path, 'data'
-      curText = load.text curPath
-      indexBuf = dataBuf = null
-      indexBufLen = dataBufLen = 0
+      curText   = load.text path
 
 save = exports
 
-save.text = (path, text, base = no) ->
+save.text = (path, text, base = (curText is '')) ->
+  if path is curPath and text is curText then return
   setPath path
-  if base or curText is ''
-    diffList = [[DIFF_BASE, text]]
-  else
-    diffList = diffMatchPatch.diff_main curText, text
-    if diffList.length is 1 and diffList[0][0] is DIFF_EQUAL
-      return
-  appendDiffs diffList
+  diffList = if base then [[DIFF_BASE, text]]   \
+                     else diffMatchPatch.diff_main curText, text
   curText = text
-  flushBufsToFiles 0, 0
+  appendDelta diffList
+  saveTime
