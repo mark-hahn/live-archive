@@ -1,5 +1,8 @@
-{WorkspaceView} = require 'atom'
+
+fs          = require 'fs'
 LiveArchive = require '../lib/live-archive'
+load        = require '../lib/load'
+save        = require '../lib/save'
 
 # Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
 #
@@ -7,24 +10,36 @@ LiveArchive = require '../lib/live-archive'
 # or `fdescribe`). Remove the `f` to unfocus the block.
 
 describe "LiveArchive", ->
-  activationPromise = null
+  describe "when the live-archive:open is triggered", ->
+    beforeEach ->
+      @paths = [ process.cwd(), process.cwd() + '/lib/save.coffee' ]
+      @path  = load.getPath @paths...
 
-  beforeEach ->
-    atom.workspaceView = new WorkspaceView
-    activationPromise = atom.packages.activatePackage('live-archive')
+      try
+        fs.unlinkSync @path + '/data'
+      catch e
+      try
+        fs.unlinkSync @path + '/index'
+      catch e
 
-  describe "when the live-archive:toggle event is triggered", ->
-    it "attaches and then detaches the view", ->
-      expect(atom.workspaceView.find('.live-archive')).not.toExist()
+    it "saves and loads small strings", ->
+      v1 = 'text'
+      v2 = 'T E xt'
+      v3 = 'TexT'
 
-      # This is an activation event, triggering it will cause the package to be
-      # activated.
-      atom.workspaceView.trigger 'live-archive:toggle'
+      t1 = save.text @paths..., v1
+      t2 = save.text @paths..., v2
 
-      waitsForPromise ->
-        activationPromise
+      expect(load.text @paths...).toBe v2
 
-      runs ->
-        expect(atom.workspaceView.find('.live-archive')).toExist()
-        atom.workspaceView.trigger 'live-archive:toggle'
-        expect(atom.workspaceView.find('.live-archive')).not.toExist()
+      t3 = save.text @paths..., v3, yes
+
+      expect(load.text @paths...,   t2).toBe v2
+      expect(load.text @paths...,   t1).toBe v1
+      expect(load.text @paths...,   t3).toBe v3
+      expect(load.text @paths..., t2+1).toBe v2
+      expect(load.text @paths..., t2-1).toBe v1
+      expect(load.text @paths...,    0).toBe ''
+      expect(load.text @paths..., t3+1).toBe v3
+      expect(load.text @paths..., t3-1).toBe v2
+      expect(load.text @paths...      ).toBe v3
