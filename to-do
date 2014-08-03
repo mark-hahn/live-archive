@@ -1,0 +1,35 @@
+
+features ...
+  use theme colors
+  close button
+  sync btn to set all editors to same save time
+  catch file errors and display and handle
+  scroll options
+    auto
+    save
+    lock
+    top
+  filters
+    visible
+    saved
+    git 
+  ruler
+
+bugs ...
+  multiple copies of editmgr in editmgrs?
+  update dialog when buffer changes from other editor
+  save happens on every btn press
+  
+specs ...
+  add auto
+  do atom ui
+  add time load test
+  
+test ...
+  try forward-only scanning
+  test with all themes
+  minimap
+  
+notes ...
+  splitting panes hides replay dialog
+  
