@@ -1,35 +1,27 @@
+# lib\load.coffee
 
 fs         = require 'fs'
 pathUtil   = require 'path'
 mkdirp     = require 'mkdirp'
 binSrch    = require 'binarysearch'
+dbg        = require('./utils').debug 'load'
+
 # uncompress = require('compress-buffer').uncompress
 
+IDX_AUTO_MASK       = 0x20
 IDX_BASE_MASK       = 0x10
-IDX_BASE_SHIFT      = 4
-IDX_BYTE_COUNT_MASK = 0x03
+IDX_BYTE_COUNT_MASK = 0x07
 DIFF_EQUAL  = 0
 DIFF_INSERT = 1
 DIFF_BASE   = 2
 DIFF_DELETE = 3
-DIFF_SHIFT  = 4
 DIFF_TYPE_MASK  = 0x30
 DIFF_TYPE_SHIFT = 4
 DIFF_COMPRESSED_MASK  = 0x40
-DIFF_COMPRESSED_SHIFT = 6
 DIFF_COUNT_CODE_MASK  = 0x0f
 
-maxTextCacheAge  = 60 * 1000
-maxTextCacheSize = 1e7
-
 curPath = indexPath = dataPath = ''
-index         = []
-textCacheSize = 0
-
-timeToStr = (time) ->
-  str = '' + time
-  while str.length < 15 then str = '0' + str
-  str
+index = []
 
 getFileLen = (path) ->
   try
@@ -38,11 +30,6 @@ getFileLen = (path) ->
     return 0
   stats.size
 
-readUInt48 = (buf, ofs) ->
-  ms16 = buf.readUInt16BE ofs,   yes
-  ls32 = buf.readUInt32BE ofs+2, yes
-  ms16 * 0x100000000 + ls32
-
 readUIntN = (n, buf, ofs) ->
   num = 0
   for i in [0...n]
@@ -50,15 +37,28 @@ readUIntN = (n, buf, ofs) ->
     num |= buf.readUInt8 ofs++, yes
   num
 
+getDeltaHdr = (fdIn, fileOfs) ->
+  buf = new Buffer 20
+  fd = (if fdIn then fdIn else fs.openSync dataPath, 'r')
+  fs.readSync fd, buf, 0, 20, fileOfs
+  if not fdIn then fs.closeSync fd
+  hdrByte = buf.readUInt8 0, yes
+  lineNumLen = (hdrByte >>> 2) & 3
+  charOfsLen =  hdrByte        & 3
+  time    = buf.readUInt32BE 1, yes
+  lineNum = readUIntN lineNumLen, buf, 1 + 4
+  charOfs = readUIntN charOfsLen, buf, 1 + 4 + lineNumLen
+  {time, lineNum, charOfs, hdrLen: 1 + 4 + lineNumLen + charOfsLen}
+
 readIndexEntry = (idx, buf, pos) ->
-  hdrByte = buf.readUInt8 pos, yes
-  isBase = ((hdrByte & IDX_BASE_MASK) is IDX_BASE_MASK)
-  idxNumBytesInOfs = hdrByte & IDX_BYTE_COUNT_MASK
-  saveTime   = readUInt48 buf, pos + 1
-  fileEndPos = readUIntN idxNumBytesInOfs, buf, pos + 1 + 6
-  entryLen   = 1 + 6 + idxNumBytesInOfs
-  fileBegPos = (if idx is -1 then 0 else index[idx].fileEndPos)
-  {isBase, saveTime, entryLen, fileBegPos, fileEndPos}
+  hdrByte    = buf.readUInt8 pos, yes
+  isAuto     = ((hdrByte & IDX_AUTO_MASK) is IDX_AUTO_MASK)
+  isBase     = ((hdrByte & IDX_BASE_MASK) is IDX_BASE_MASK)
+  bytesInEnd = hdrByte & IDX_BYTE_COUNT_MASK
+  fileBegPos = (if idx < 0 then 0 else index[idx].fileEndPos)
+  fileEndPos = readUIntN bytesInEnd, buf, pos + 1
+  entryLen   = 1 + bytesInEnd
+  {isAuto, isBase, entryLen, fileBegPos, fileEndPos}
 
 readDiff = (buf, ofs) ->
   hdrByte    = buf.readUInt8 ofs, yes
@@ -84,72 +84,21 @@ readDiff = (buf, ofs) ->
     diffStr = diffDataBuf.toString()
   {diffType, diffStr, diffLen, diffDataLen}
 
-readBaseFromFile = (indexEntry) ->
-  diffsLen = indexEntry.fileEndPos - indexEntry.fileBegPos - 12
-  diffsBuf = new Buffer diffsLen
+processDeltas = (text, idx, idxInc, endIdx, baseIdx, baseDiffsBuf) ->
   fd = fs.openSync dataPath, 'r'
-  fs.readSync fd, diffsBuf, 0, diffsLen, indexEntry.fileBegPos + 6
-  fs.closeSync fd
-  readDiff(diffsBuf, 0).diffStr
-
-delCacheTextFromIndexEntry = (indexEntry) ->
-  textCacheSize -= indexEntry.cacheText.length
-  delete indexEntry.cacheText
-  delete indexEntry.cacheTextUsedTime
-  textCacheSize < maxTextCacheSize
-
-pruneTextCache = ->
-  now = Date.now()
-  entries = []
-  for indexEntry in index when indexEntry.cacheText
-    usedTime = indexEntry.cacheTextUsedTime
-    if usedTime < now - maxTextCacheAge
-      if delCacheTextFromIndexEntry indexEntry then return
-    else
-      entries.push [usedTime, indexEntry]
-  entries.sort()
-  for entry in entries
-      [usedTime, indexEntry] = entry
-      if delCacheTextFromIndexEntry indexEntry then return
-  null
-
-addCacheTextToIndexEntry = (indexEntry, text) ->
-  textCacheSize += textlength
-  indexEntry.cacheText = text
-  indexEntry.cacheTextUsedTime = Date.now()
-  if textCacheSize > maxTextCacheSize then pruneTextCache()
-
-chkSaveToCache = (idx, text) ->
-  text
-
-getText = (timeTgt) ->
-  if index.length is 0 or timeTgt < index[0].saveTime then return ''
-  endIdx = binSrch.closest index, timeTgt, (entry, tgt) -> entry.saveTime - tgt
-  endIndexSaveTime = index[endIdx].saveTime
-  if timeTgt < endIndexSaveTime
-    endIdx--
-    endIndexSaveTime = index[endIdx].saveTime
-  dist = 0
-  loop
-    dist = -dist
-    if (entry = index[endIdx + dist]) and (entry.cacheText or entry.isBase) then break
-    if dist <= 0 then dist--
-  if not (text = entry.cacheText) then text = readBaseFromFile entry
-  if dist is 0 then return chkSaveToCache endIdx, text
-  idxInc = (if dist < 0 then 1 else -1)
-  idx = endIdx + dist
-  if idxInc > 0 then idx++; endIdx++
   diffsBufs = []
-  fd = fs.openSync dataPath, 'r'
   loop
-    {fileBegPos, fileEndPos} = index[idx]
-    diffsLen = fileEndPos - fileBegPos - 12
-    diffsBuf = new Buffer diffsLen
-    fs.readSync fd, diffsBuf, 0, diffsLen, fileBegPos + 6
-    diffsBufs.push diffsBuf
+    if idx is baseIdx
+        diffsBufs.push baseDiffsBuf
+    else
+      {fileBegPos, fileEndPos} = index[idx]
+      {hdrLen, lineNum, charOfs} = getDeltaHdr fd, fileBegPos
+      diffsLen = fileEndPos - fileBegPos - hdrLen - 4
+      diffsBuf = new Buffer diffsLen
+      fs.readSync fd, diffsBuf, 0, diffsLen, fileBegPos + hdrLen
+      diffsBufs.push diffsBuf
     if (idx += idxInc) is endIdx then break
   fs.closeSync fd
-  cachecount = 0
   for diffsBuf in diffsBufs
     diffPos = textPos = 0
     nextText = ''
@@ -167,14 +116,49 @@ getText = (timeTgt) ->
           when DIFF_INSERT then nextText += diffStr
       diffPos += diffLen
     text = nextText
-  chkSaveToCache endIdx, text
+  {text, lineNum, charOfs}
+
+getTextAndPos = (idx, time) ->
+  if index.length is 0 then return {text: '', index: -1, lineNum: 0, charOfs: 0}
+  if time?
+    idx = binSrch.closest index, time, (entry, tgt) -> load.getTime(entry.idx) - tgt
+    if time < load.getTime(idx) then idx--
+  if idx < 0 then return {text: '', index: -1, lineNum: 0, charOfs: 0}
+  tgtIdx = endIdx = idx
+  dist = 0
+  loop
+    dist = -dist
+    if (baseEntry = index[endIdx + dist]) and baseEntry.isBase then break
+    if dist <= 0 then dist--
+  baseIdx = endIdx + dist
+  {hdrLen, lineNum, charOfs} = getDeltaHdr null, baseEntry.fileBegPos
+  baseDiffsLen = baseEntry.fileEndPos - baseEntry.fileBegPos - hdrLen - 4
+  baseDiffsBuf = new Buffer baseDiffsLen
+  fd = fs.openSync dataPath, 'r'
+  fs.readSync fd, baseDiffsBuf, 0, baseDiffsLen, baseEntry.fileBegPos + hdrLen
+  fs.closeSync fd
+  baseText = readDiff(baseDiffsBuf, 0).diffStr
+  if tgtIdx is baseIdx
+    dbg 'getTextAndPos from base', baseIdx
+    return {text: baseText, index: baseIdx, lineNum, charOfs, auto: baseEntry.isAuto}
+  idxInc = (if dist < 0 then 1 else -1)
+  idx = baseIdx
+  if idxInc > 0 then idx++; endIdx++
+  {text, lineNum, charOfs} =
+    processDeltas baseText, idx, idxInc, endIdx, baseIdx, baseDiffsBuf
+  if idxInc < 0
+    {lineNum, charOfs} = getDeltaHdr null, index[tgtIdx].fileBegPos
+  dbg 'getTextAndPos', tgtIdx, lineNum, charOfs
+  {text, index: tgtIdx, lineNum, charOfs, auto: index[tgtIdx].isAuto}
 
 setPath = (path) ->
-  if path isnt curPath
+  if path isnt curPath or 
+      not fs.existsSync(path + '/data') or
+      not fs.existsSync(path + '/index')
     curPath = path
     index = []
-    textCacheSize = 0
 
+    # todo - refactor these two blocks
     if path
       mkdirp.sync path
       indexPath = pathUtil.join path, 'index'
@@ -182,10 +166,11 @@ setPath = (path) ->
       dataPath  = pathUtil.join path, 'data'
       fs.closeSync fs.openSync dataPath, 'a'
       indexBuf = fs.readFileSync indexPath
-      pos = 0
+      pos = idx = 0
       while pos < indexBuf.length
         entry = readIndexEntry index.length-1, indexBuf, pos
         entry.idxFilePos = pos
+        entry.idx        = idx++
         index.push entry
         pos += entry.entryLen
 
@@ -201,9 +186,11 @@ setPath = (path) ->
       fs.readSync fd, indexBuf, 0, indexBuf.length, indexSize
       fs.closeSync fd
       pos = 0
+      idx = (lastEntry?.idx ? -1) + 1
       while pos < indexBuf.length
         entry = readIndexEntry index.length-1, indexBuf, pos
         entry.idxFilePos = indexSize + pos
+        entry.idx        = idx++
         index.push entry
         pos += entry.entryLen
       null
@@ -211,21 +198,32 @@ setPath = (path) ->
 load = exports
 
 load.getPath = (projPath, filePath) ->
-  projPath = pathUtil.resolve projPath
-  filePath = pathUtil.resolve filePath
-
   liveArchiveDir = projPath + '/.live-archive'
-  try
-    fs.statSync liveArchiveDir
-  catch e
-    console.log 'no .live-archive dir in', projPath
-    return
+  if not fs.existsSync liveArchiveDir
+    dbg 'no .live-archive dir in', projPath
+    return {}
   projDirs = projPath.split /\/|\\/g
   path = liveArchiveDir + '/' + filePath.split(/\/|\\/g)[projDirs.length...].join('/')
   mkdirp.sync path
-  path
+  try
+    indexFileSize = fs.statSync(path + '/index').size
+  catch e
+    indexFileSize = 0
+  {path, indexFileSize}
 
-load.text = (projPath, filePath, saveTime = Infinity) ->
-  path = load.getPath projPath, filePath
+load.text = (projPath, filePath, idx, time) ->
+  if not (path = load.getPath(projPath, filePath).path) then return {text: ''}
   setPath path
-  getText saveTime
+  idx ?= index.length - 1
+  if idx < 0 then return {text: ''}
+  getTextAndPos idx, time
+
+load.getTime = (idx) -> 
+  if index.length is 0 then return 0
+  {time} = getDeltaHdr null, index[idx].fileOfsBeg
+  time
+  
+load.lastTime = (path) ->
+  setPath path
+  lastIndex = (if index.length > 0 then index.length-1 else -1)
+  {lastIndex}

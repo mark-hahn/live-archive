@@ -2,8 +2,7 @@
   "name": "live-archive",
   "main": "./lib/live-archive",
   "version": "0.0.1",
-  "description": "Archives package continuously with fast review of old versions",
-  "activationEvents": ["live-archive:open"],
+  "description": "Archives project continuously with fast review of old versions",
   "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
   "engines": {
@@ -12,10 +11,8 @@
   "dependencies": {
     "mkdirp":           "0.5.x",
     "binarysearch":     "0.2.x",
-    "compress-buffer":  "1.2.x",
-    "diff_match_patch": "0.1.x"
+    "diff_match_patch": "0.1.x",
+    "moment":           "2.7.0"
   },
-  "devDependencies": {
-    "mocha":            "1.20.x"
-  }
+  "activationEvents": ["core:save", "live-archive:toggle"]
 }
