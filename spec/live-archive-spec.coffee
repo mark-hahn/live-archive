@@ -20,10 +20,7 @@ describe "LiveArchive", ->
       @paths = [ projectRoot, projectRoot + '/fake.file' ]
       @path  = load.getPath(@paths...).path
       try
-        fs.unlinkSync @path + '/data'
-      catch e
-      try
-        fs.unlinkSync @path + '/index'
+        fs.unlinkSync @path
       catch e
 
     it "saves and loads small strings", ->

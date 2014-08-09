@@ -6,16 +6,17 @@ module.exports =
 class ReplayView extends View
   @content: ->
     @div class: 'live-archive-replay', \
-                style:'height:50px; font-size: 13px; overflow:hidden;
-                       width:700px; padding: 3px 10px 0 20px; overflow: hidden', =>
-      @div style: 'position:relative; top: -2px; width:700px; height: 15px', =>
+                style:'height:52px; font-size: 13px; overflow:hidden;
+                       width:1000px; padding: 3px 10px 0 5px; overflow: hidden', =>
+      @div style: 'position:relative; top: -2px; width:1000px; height: 15px', =>
         @div style: 'clear: both; float: left; margin-left: 10px', '------------ Navigation ------------'
         @div style: 'float: left; margin-left: 18px', '----- Switch -----'
         @div style: 'float: left; margin-left: 15px', '--- Match ---'
+        @div style: 'float: left; margin-left: 15px', '---- Filters ----'
         @div style: 'float: left; margin-left: 13px', '-- Scroll --'
-        @div style: 'float: left; margin-left: 16px', '--------- Search ---------'
+        @div style: 'float: left; margin-left: 18px', '--------- Search ---------'
       
-      @div click: 'handle', style: 'clear: both; float: left; width:700px; height: 15px', =>
+      @div click: 'handle', style: 'clear: both; float: left; width:1000px; height: 15px', =>
         @button style:'margin-left:5px; background-color:#ccc', '|<'
         @button style:'margin-left:5px; background-color:#ccc', '<<'
         @button style:'margin-left:5px; background-color:#ccc', '<'
@@ -26,6 +27,8 @@ class ReplayView extends View
         @button style:'margin-left:5px; background-color:#ccc', 'Work'
         @button style:'margin-left:15px; background-color:#ccc', 'Git'
         @button style:'margin-left:5px; background-color:#ccc', 'File'
+        @button style:'margin-left:15px; background-color:#ccc', 'Visi'
+        @button style:'margin-left:5px; background-color:#ccc', 'Save'
         @select name: 'scrl', style: 'margin-left:15px; width:60px; background-color:#aaa', =>
           @option 'Auto'
           @option 'Save'

@@ -80,8 +80,8 @@
 
 - Text archived on each buffer save
 - No saving UI except confidence indicator in status bar
-- Toggle reviewing pane with `live-archive:toggle` command
-- Default toggle keystroke is `ctrl-alt-A`
+- Open reviewing pane with `live-archive:open` command
+- Default open keystroke is `ctrl-alt-A`
 - When hopping between tabs use resume button to continue reviewing
 
 ### Note:

@@ -1,2 +1,2 @@
 '.workspace .editor':
-  'ctrl-alt-a': 'live-archive:toggle'
+  'ctrl-alt-a': 'live-archive:open'

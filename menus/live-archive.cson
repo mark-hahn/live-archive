@@ -1,7 +1,7 @@
 # See https://atom.io/docs/latest/creating-a-package#menus for more details
 'context-menu':
   '.overlayer':
-      'Enable live-archive': 'live-archive:toggle'
+      'Enable live-archive': 'live-archive:open'
 
 'menu': [
   {
@@ -9,7 +9,7 @@
     'submenu': [
       'label': 'live-archive'
       'submenu': [
-        { 'label': 'Toggle', 'command': 'live-archive:toggle' }
+        { 'label': 'Open', 'command': 'live-archive:open' }
       ]
     ]
   }

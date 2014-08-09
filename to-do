@@ -4,21 +4,19 @@ features ...
   close button
   sync btn to set all editors to same save time
   catch file errors and display and handle
-  scroll options
-    auto
-    save
-    lock
-    top
+  implement scroll options
   filters
     visible
     saved
     git 
   ruler
+  move replay to separate editor pane
 
 bugs ...
-  multiple copies of editmgr in editmgrs?
+  split panes -> multiple copies of editmgr
   update dialog when buffer changes from other editor
   save happens on every btn press
+  multiple review tabs are opened
   
 specs ...
   add auto
