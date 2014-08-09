@@ -14,5 +14,5 @@
     "diff_match_patch": "0.1.x",
     "moment":           "2.7.0"
   },
-  "activationEvents": ["core:save", "live-archive:open"]
+  "activationEvents": []
 }

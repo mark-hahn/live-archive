@@ -1,7 +1,7 @@
 {View} = require 'atom'
 util   = require './utils'
 dbg    = util.debug 'edmgr'
-dbg2   = util.debug 'edmgr', 2
+dbg   = util.debug 'edmgr', 2
 
 module.exports =
 class StatusView extends View

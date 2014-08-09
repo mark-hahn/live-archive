@@ -1,13 +1,13 @@
 
 dbg  = require('./utils').debug 'larch'
-dbg2 = require('./utils').debug 'larch', 2
+dbg = require('./utils').debug 'larch', 2
 
 module.exports =
   activate: ->
     @rootDir    = atom.project.getRootDirectory().path
     @archiveDir = @rootDir + '/.live-archive'
 
-    dbg2 'live-archive activated'
+    dbg 'live-archive activated'
     @fs            = require 'fs'
     @pathUtil      = require 'path'
     @mkdirp        = require 'mkdirp'
@@ -17,6 +17,17 @@ module.exports =
 
     atom.workspaceView.command "core:save",         => @archive()
     atom.workspaceView.command "live-archive:open", => @openReviewEditor()
+    
+    atom.workspaceView.eachEditorView (editorView) =>
+      editor = editorView.getEditor()
+      if editor.liveArchiveEditorMgr then return
+      tildePath = editor.getUri().replace /\\/g, '/'
+      if (tildeIdx = tildePath.indexOf '/~ ') is -1 then return
+      baseName = tildePath[tildeIdx+3...]
+      dirPath  = tildePath[@archiveDir.length+1...tildeIdx]
+      origPath = @rootDir + '/' + dirPath + '/' + baseName
+      dbg 'eachEditorView', {tildePath, tildeIdx, baseName, dirPath, origPath}
+      new @EditorMgr @, editor, origPath, tildePath
 
     atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
       dbg 'pane-item-changed'
@@ -25,7 +36,7 @@ module.exports =
 
       editorView = atom.workspaceView.getActiveView()
       if not (editor = editorView?.getEditor?())
-        dbg2 'no editor in this tab'
+        dbg 'no editor in this tab'
         return
       editor.liveArchiveEditorMgr?.show()
       # @editorMgr.setStatusBarMsg 'Archiving', 0
@@ -68,7 +79,7 @@ module.exports =
     text       = buffer.getText()
     base       = no
     changed    = @save.text @rootDir, buffer.getUri(), text, lineNum, charOfs, base, no
-    dbg2 'live-archive save -', buffer.getUri(),
+    dbg 'live-archive save -', buffer.getUri(),
               '-', Date.now() - start, 'ms',
               (if not changed then '- noChg' else ''), lineNum, charOfs
     @setStatusBarMsg 'Archiving', 2, 1
@@ -76,33 +87,34 @@ module.exports =
   openReviewEditor: -> 
     editorView = atom.workspaceView.getActiveView()
     if not (editor = editorView?.getEditor?())
-      dbg2 'no editor in this tab'
+      dbg 'no editor in this tab'
       return
-    uri      = @pathUtil.normalize editor.getUri()
-    dirName  = @pathUtil.dirname  uri    # c:\apps\live-archive\lib
-    baseName = @pathUtil.basename uri    # live-archive.coffee
-    relPath  = uri[@rootDir.length+1...] # lib\live-archive.coffee
+    origPath = @pathUtil.normalize editor.getUri()
+    dirName  = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
+    baseName = @pathUtil.basename origPath    # live-archive.coffee
+    relPath  = origPath[@rootDir.length+1...] # lib\live-archive.coffee
     dirPath  = @pathUtil.dirname relPath # lib
-    file     = @pathUtil.normalize @archiveDir + '/' + dirPath + '/~ ' + baseName
+    tildePath = @pathUtil.normalize @archiveDir + '/' + dirPath + '/~ ' + baseName
                     # c:\apps\live-archive/.live-archive/lib/~ live-archive.coffee
 
     if baseName[0..1] is '~ '
-      dbg2 'you cannot open a review editor for a review file'
+      dbg 'you cannot open a review editor for a review file'
       return
     
     ## this doesn't work for unopened tabs
     # for editorView in atom.workspaceView.getEditorViews()
-    #   dbg2 'getUri', editorView.getEditor().getUri()
-    #   if editorView.getEditor().getUri() is file
-    #     dbg2 'select tab'
+    #   dbg 'getUri', editorView.getEditor().getUri()
+    #   if editorView.getEditor().getUri() is tildePath
+    #     dbg 'select tab'
     #     return
     
-    atom.workspaceView.open(file).then (editor) =>
+    atom.workspaceView.open(tildePath).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
-        editorMgr = new @EditorMgr @, editor, uri
+        editorMgr = new @EditorMgr @, editor, origPath, tildePath
         if editorMgr.invalid then return
-        dbg2 'openReviewEditor created EditorMgr', editorMgr
-      dbg2 'openReviewEditor found EditorMgr', editorMgr
+        dbg 'openReviewEditor created EditorMgr', editorMgr
+      else
+        dbg 'openReviewEditor found EditorMgr', editorMgr
 
   deactivate: -> @EditorMgr.destroyAll()
   

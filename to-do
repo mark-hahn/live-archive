@@ -1,4 +1,6 @@
 
+write js to cs intro
+
 features ...
   use theme colors
   close button
@@ -7,10 +9,8 @@ features ...
   implement scroll options
   filters
     visible
-    saved
     git 
   ruler
-  move replay to separate editor pane
 
 bugs ...
   split panes -> multiple copies of editmgr
