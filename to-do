@@ -1,20 +1,24 @@
 
 write js to cs intro
 
-features ...
+features ... 
+  difference highliting
   use theme colors
-  close button
   sync btn to set all editors to same save time
   catch file errors and display and handle
   implement scroll options
   filters
     visible
-    git 
-  ruler
+    git (all commits)
+  ruler 
+  close button -- same as close in dialog
+  remove file btn
+  btn to set source file to review buf contents
 
 bugs ...
   split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
+  git and file btns broken 
   
 specs ...
   add auto

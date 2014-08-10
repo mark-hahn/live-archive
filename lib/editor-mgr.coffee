@@ -34,6 +34,8 @@ class EditorMgr
     @curIndex = @lastIndex
     EditorMgr.editorMgrs.push @
     
+    @buffer.isModified = -> no
+    @buffer.save       = ->
     atom.workspaceView.getActivePane().model.promptToSaveItem = -> yes
   
     @buffer.on 'contents-modified', =>
@@ -45,10 +47,10 @@ class EditorMgr
                            'This is not a file. ' +
                            'It is OK to edit a history buffer but often you really ' +
                            'intend to edit the source file. ' +
-                           'Press Cancel to undo the edit, ' +
+                           'Press Source to go to the source file, ' +
                            'Edit to continue editing, ' +
-                           'or Close to go to the source file.'
-          buttons: ['Cancel', 'Edit', 'Close']
+                           'or Cancel to undo the edit.'
+          buttons: ['Source', 'Edit', 'Cancel']
         getViewPos = =>
             if not @editorView then return
             topLine = @editorView.getFirstVisibleScreenRow()
@@ -62,18 +64,15 @@ class EditorMgr
         switch choice
           when 0
             pos = getViewPos()
-            @buffer.setText @curText
-            setViewPos pos, @editorView
-          when 1 then @allowEditing = yes
-          when 2
-            pos = getViewPos()
-            origPath = @origPath
-            # @hide()
-            atom.workspaceView.destroyActivePane()
-            atom.workspaceView.open origPath
+            atom.workspaceView.open @origPath
             setTimeout => 
               setViewPos pos, atom.workspaceView.getActiveView()
             , 500
+          when 1 then @allowEditing = yes
+          when 2
+            pos = getViewPos()
+            @buffer.setText @curText
+            setViewPos pos, @editorView
             
     @curText = @buffer.getText()
     @show()
@@ -92,7 +91,6 @@ class EditorMgr
       paneView.append @replayView
     paneView.find('.minimap').view()?.updateMinimapView()
     @statusView.setMsg @getState()
-    @app.setStatusBarMsg 'Archiving', 1
     @loadEditor()
 
   hide: ->
@@ -127,21 +125,6 @@ class EditorMgr
       return @curIndex
     idx
 
-  findFile: ->
-    start = Date.now()
-    tgtText = fs.readFileSync @origPath, 'utf8'
-    if (startIdx = @curIndex - 1) < 0
-      @statusView.setNotFound()
-      return @curIndex
-    found = no
-    for idx in [startIdx..0] by -1
-      {text} = load.text EditorMgr.rootDir, @origPath, idx
-      if text is tgtText then found = yes; break
-    dbg 'findFile', idx
-    @loadDelay = Date.now() - start
-    if not found then @statusView.setNotFound(); return @curIndex
-    idx
-
   loadEditor: (btn, $btn) ->
     @updateFileInfo()
     if not @dataFileSize then return
@@ -149,14 +132,12 @@ class EditorMgr
     fwdBackInc = Math.floor Math.sqrt @lastIndex
     rtrn = no
     idx = switch btn
-      when '~'      then @curIndex
+      when 'Git'    then @findGitHead()
       when '|<'     then 0
       when '<<'     then Math.max 0, @curIndex - fwdBackInc
       when '<'      then Math.max 0, @curIndex - 1
       when '>'      then Math.min @lastIndex, @curIndex + 1 
       when '>>'     then Math.min @lastIndex, @curIndex + fwdBackInc
-      when 'Git'    then @findGitHead()
-      when 'File'   then @findFile()
       when 'SELECT' then @curIndex
       when 'INPUT'  then @curIndex
       else               @lastIndex
@@ -177,9 +158,8 @@ class EditorMgr
   
   getState: ->
     @updateFileInfo()
-    modified = @buffer.getText() isnt @curText
     time = load.getTime @curIndex
-    {modified, time, @curIndex, @lastIndex, @loadDelay, @auto}
+    {time, @curIndex, @lastIndex, @loadDelay, @auto}
     
   destroy: ->
     if @editor then delete @editor.liveArchiveEditorMgr

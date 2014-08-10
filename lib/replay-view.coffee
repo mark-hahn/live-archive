@@ -9,23 +9,20 @@ class ReplayView extends View
                 style:'height:52px; font-size: 13px; overflow:hidden;
                        width:1000px; padding: 3px 10px 0 5px; overflow: hidden', =>
       @div style: 'position:relative; top: -2px; width:1000px; height: 15px', =>
-        @div style: 'clear: both; float: left; margin-left: 38px', 
-                    '------------ Navigation -------------'
-        @div style: 'float: left; margin-left: 15px', '--- Match ---'
-        @div style: 'float: left; margin-left: 15px', '---- Filters ----'
-        @div style: 'float: left; margin-left: 13px', '-- Scroll --'
+        @div style: 'clear: both; float: left; margin-left: 8px', 
+                    '------------------ Navigation --------------'
+        @div style: 'float: left; margin-left: 17px', '---- Filters ----'
+        @div style: 'float: left; margin-left: 16px', '-- Scroll --'
         @div style: 'float: left; margin-left: 18px', '--------- Search ---------'
       
       @div click: 'handle', style: 'clear: both; float: left; width:1000px; height: 15px', =>
-        @button style:'margin-left:5px; background-color:#ccc', '~'
+        @button style:'margin-left:5px; background-color:#ccc', 'Git'
         @button style:'margin-left:5px; background-color:#ccc', '|<'
         @button style:'margin-left:5px; background-color:#ccc', '<<'
         @button style:'margin-left:5px; background-color:#ccc', '<'
         @button style:'margin-left:5px; background-color:#ccc', '>'
         @button style:'margin-left:5px; background-color:#ccc', '>>'
         @button style:'margin-left:5px; background-color:#ccc', '>|'
-        @button style:'margin-left:15px; background-color:#ccc', 'Git'
-        @button style:'margin-left:5px; background-color:#ccc', 'File'
         @button style:'margin-left:15px; background-color:#ccc', 'Visi'
         @button style:'margin-left:5px; background-color:#ccc', 'Save'
         @select name: 'scrl', style: 'margin-left:15px; width:60px; background-color:#aaa', =>
