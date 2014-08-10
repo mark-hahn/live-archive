@@ -1,6 +1,6 @@
 
 dbg  = require('./utils').debug 'larch'
-dbg = require('./utils').debug 'larch', 2
+dbg2 = require('./utils').debug 'larch', 2
 
 module.exports =
   activate: ->

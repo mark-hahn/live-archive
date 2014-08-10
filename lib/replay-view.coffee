@@ -1,6 +1,6 @@
 {View} = require 'atom'
 dbg    = require('./utils').debug 'repvw'
-dbg   = require('./utils').debug 'repvw', 2
+dbg2   = require('./utils').debug 'repvw', 2
 
 module.exports =
 class ReplayView extends View

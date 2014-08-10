@@ -6,7 +6,7 @@ load          = require './load'
 StatusView    = require './status-view'
 ReplayView    = require './replay-view'
 dbg           = require('./utils').debug 'edmgr', 1
-dbg          = require('./utils').debug 'edmgr', 2
+dbg2          = require('./utils').debug 'edmgr', 2
 
 module.exports =
 class EditorMgr
@@ -35,8 +35,27 @@ class EditorMgr
     @updateFileInfo()
     @curIndex = @lastIndex
     EditorMgr.editorMgrs.push @
+    
     @buffer.on 'contents-modified', =>
       @statusView?.setMsg @getState()
+      if @buffer.getText() isnt @curText and not @allowEditing
+        undoEdit = =>
+          topLine = @editorView.getFirstVisibleScreenRow()
+          cursPos = @editor.getCursorBufferPosition()
+          @buffer.setText @curText
+          @editorView.scrollToBufferPosition [topLine, 0]
+          @editor.setCursorBufferPosition cursPos
+        choice = atom.confirm
+          message: '    -- Are you sure you want to modify history? --\n'
+          detailedMessage: 'It is OK to edit a history buffer but often you really ' +
+                           'intended to edit the source file. Press Cancel to undo the edit, ' +
+                           ' Edit to continue editing, or Back to open the source file.'
+          buttons: ['Cancel', 'Edit', 'Back']
+        switch choice
+          when 0 then undoEdit()
+          when 1 then @allowEditing = yes
+          when 2 then undoEdit(); atom.workspaceView.open @origPath
+    @curText = @buffer.getText()
     @show()
       
   show: ->
@@ -104,7 +123,8 @@ class EditorMgr
     idx
 
   loadTildeFile: ->
-    @buffer.setText fs.readFileSync @tildePath, 'utf8'
+    @curText = fs.readFileSync @tildePath, 'utf8'
+    @buffer.setText @curText
     @editorView.scrollToBufferPosition [0, 0]
     @editor.setCursorBufferPosition    [0 ,0]
     atom.workspaceView.focus()
@@ -129,11 +149,10 @@ class EditorMgr
       else               @lastIndex
     if rtrn then return
     start = Date.now()
-    {text, index: @curIndex, lineNum, charOfs, @auto} =
+    {text: @curText, index: @curIndex, lineNum, charOfs, @auto} =
       load.text EditorMgr.rootDir, @origPath, idx
     @loadDelay = Date.now() - start
-    
-    @buffer.setText text
+    @buffer.setText @curText
     @editorView.scrollToBufferPosition [lineNum+2, 0]
     lineOfs = @buffer.characterIndexForPosition [lineNum, 0]
     cursPos = @buffer.positionForCharacterIndex lineOfs + charOfs
