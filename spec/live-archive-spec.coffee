@@ -50,4 +50,7 @@ describe "LiveArchive", ->
       expect(load.getDiffs @paths..., idx2, yes).toEqual 
         inserts : [ [ 0, 5 ] ]
         deletes : [ [ 1, 5 ], [ 6, 7 ] ]
-        
+          
+      expect(load.getDiffs @paths..., idx3, yes).toEqual 
+        inserts : [ [ 1, 2 ], [ 3, 4 ] ]
+        deletes : [  ]  

@@ -154,8 +154,13 @@ class EditorMgr
     atom.workspaceView.focus()
     @statusView?.setMsg @getState()
     
-  modified: -> no
-  
+    @highlightDifferences()
+    
+  highlightDifferences: ->
+    diffs = load.getDiffs EditorMgr.rootDir, @origPath, @curIndex, yes
+    
+    
+    
   getState: ->
     @updateFileInfo()
     time = load.getTime @curIndex

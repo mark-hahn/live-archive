@@ -165,6 +165,7 @@ getHdrLen = (hdrFilePos) ->
   pos + lineNumLen + charOfsLen
   
 diffsForOneIdx = (idx) ->
+  if idx >= index.length then return []
   {fileBegPos, fileEndPos} = index[idx]
   hdrLen = getHdrLen fileBegPos
   diffOfs = fileBegPos + hdrLen
@@ -194,8 +195,7 @@ diffsForOneIdx = (idx) ->
 
 scanForDiffs = (idx, twoIdx) ->
   retrn = diffsForIdx: diffsForOneIdx idx
-  if twoIdx and ++idx < index.length
-    retrn.diffsForNextIdx = diffsForOneIdx idx
+  if twoIdx then retrn.diffsForNextIdx = diffsForOneIdx idx + 1
   retrn
         
 getIndexes = (pos) ->
@@ -272,10 +272,11 @@ load.lastIndex = (path) ->
   (if index.length > 0 then index.length-1 else -1)
 
 load.getDiffs = (projPath, filePath, idx, twoIdx) ->
-  if not (path = load.getPath(projPath, filePath).path) then return {diffs: []}
+  if not (path = load.getPath(projPath, filePath).path) 
+    return diffsForIdx: [], inserts: [], deletes: []
   setPath path
   {diffsForIdx, diffsForNextIdx} = scanForDiffs idx, twoIdx
-  if not twoIdx then return diffsForIdx
+  if not twoIdx then return {diffsForIdx}
   inserts = []
   pos = 0
   for diff in diffsForIdx
