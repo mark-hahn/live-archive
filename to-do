@@ -14,9 +14,7 @@ features ...
 
 bugs ...
   split panes -> multiple copies of editmgr
-  update dialog when buffer changes from other editor
-  save happens on every btn press
-  multiple review tabs are opened
+  update dialog when buffer has external changes
   
 specs ...
   add auto

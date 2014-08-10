@@ -29,32 +29,52 @@ class EditorMgr
     if not @editorView then return cancel 'Unable to find editorView'
     
     @buffer = @editor.getBuffer()
-    # if @origPath.indexOf('test.coffee') is -1
-    #   return cancel 'Only a test file may be used when debugging' + @origPath
     @editor.liveArchiveEditorMgr = @
     @updateFileInfo()
     @curIndex = @lastIndex
     EditorMgr.editorMgrs.push @
     
+    atom.workspaceView.getActivePane().model.promptToSaveItem = -> yes
+  
     @buffer.on 'contents-modified', =>
-      @statusView?.setMsg @getState()
+      @statusView?.setMsg @getState() 
       if @buffer.getText() isnt @curText and not @allowEditing
-        undoEdit = =>
-          topLine = @editorView.getFirstVisibleScreenRow()
-          cursPos = @editor.getCursorBufferPosition()
-          @buffer.setText @curText
-          @editorView.scrollToBufferPosition [topLine, 0]
-          @editor.setCursorBufferPosition cursPos
         choice = atom.confirm
           message: '    -- Are you sure you want to modify history? --\n'
-          detailedMessage: 'It is OK to edit a history buffer but often you really ' +
-                           'intended to edit the source file. Press Cancel to undo the edit, ' +
-                           ' Edit to continue editing, or Back to open the source file.'
-          buttons: ['Cancel', 'Edit', 'Back']
+          detailedMessage: 'WARNING: edits will not be saved. ' +
+                           'This is not a file. ' +
+                           'It is OK to edit a history buffer but often you really ' +
+                           'intend to edit the source file. ' +
+                           'Press Cancel to undo the edit, ' +
+                           'Edit to continue editing, ' +
+                           'or Close to go to the source file.'
+          buttons: ['Cancel', 'Edit', 'Close']
+        getViewPos = =>
+            if not @editorView then return
+            topLine = @editorView.getFirstVisibleScreenRow()
+            cursPos = @editor.getCursorBufferPosition()
+            [topLine, cursPos]
+        setViewPos = (pos, view) ->
+          if pos and view
+            [topLine, cursPos] = pos
+            view.scrollToBufferPosition [topLine+2, 0]
+            view.getEditor().setCursorBufferPosition cursPos
         switch choice
-          when 0 then undoEdit()
+          when 0
+            pos = getViewPos()
+            @buffer.setText @curText
+            setViewPos pos, @editorView
           when 1 then @allowEditing = yes
-          when 2 then undoEdit(); atom.workspaceView.open @origPath
+          when 2
+            pos = getViewPos()
+            origPath = @origPath
+            # @hide()
+            atom.workspaceView.destroyActivePane()
+            atom.workspaceView.open origPath
+            setTimeout => 
+              setViewPos pos, atom.workspaceView.getActiveView()
+            , 500
+            
     @curText = @buffer.getText()
     @show()
       
@@ -74,15 +94,15 @@ class EditorMgr
     @statusView.setMsg @getState()
     @app.setStatusBarMsg 'Archiving', 1
     @loadEditor()
-  
+
   hide: ->
     if @statusView
       @statusView.hide()
       @replayView.hide()
-      itemView = atom.workspaceView.getActiveView()
-      paneView = itemView.closest('.pane').view()
-      paneView.find('.minimap').view()?.updateMinimapView()
-
+      if (itemView = atom.workspaceView.getActiveView()) and
+          (paneView = itemView.closest('.pane').view())
+        paneView.find('.minimap').view()?.updateMinimapView()
+  
   updateFileInfo: ->
     {path: @archivePath, @dataFileSize} = load.getPath EditorMgr.rootDir, @origPath
     @lastIndex                          = load.lastIndex @archivePath
@@ -122,13 +142,6 @@ class EditorMgr
     if not found then @statusView.setNotFound(); return @curIndex
     idx
 
-  loadTildeFile: ->
-    @curText = fs.readFileSync @tildePath, 'utf8'
-    @buffer.setText @curText
-    @editorView.scrollToBufferPosition [0, 0]
-    @editor.setCursorBufferPosition    [0 ,0]
-    atom.workspaceView.focus()
-
   loadEditor: (btn, $btn) ->
     @updateFileInfo()
     if not @dataFileSize then return
@@ -136,7 +149,7 @@ class EditorMgr
     fwdBackInc = Math.floor Math.sqrt @lastIndex
     rtrn = no
     idx = switch btn
-      when '~'      then @loadTildeFile(); rtrn = yes
+      when '~'      then @curIndex
       when '|<'     then 0
       when '<<'     then Math.max 0, @curIndex - fwdBackInc
       when '<'      then Math.max 0, @curIndex - 1
@@ -164,8 +177,9 @@ class EditorMgr
   
   getState: ->
     @updateFileInfo()
+    modified = @buffer.getText() isnt @curText
     time = load.getTime @curIndex
-    {modified: @buffer.isModified(), time, @curIndex, @lastIndex, @loadDelay, @auto}
+    {modified, time, @curIndex, @lastIndex, @loadDelay, @auto}
     
   destroy: ->
     if @editor then delete @editor.liveArchiveEditorMgr

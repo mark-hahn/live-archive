@@ -7,7 +7,7 @@ class StatusBarView extends View
     @div class: 'live-archive inline-block', style: 'font-size: 12px; color: black'
 
   initialize: -> 
-    atom.workspaceView.statusBar.appendLeft this
+    atom.workspaceView.statusBar?.appendLeft this
 
   hilite: (hilite) ->
     switch hilite
