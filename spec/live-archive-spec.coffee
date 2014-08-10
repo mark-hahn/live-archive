@@ -47,3 +47,7 @@ describe "LiveArchive", ->
       expect(load.text @paths...,   idx3).toEqual {text:v3, index:  2, lineNum: 5, charOfs: 6, auto: no}
       expect(load.text @paths...        ).toEqual {text:v3, index:  2, lineNum: 5, charOfs: 6, auto: no}
 
+      expect(load.getDiffs @paths..., idx2, yes).toEqual 
+        inserts : [ [ 0, 5 ] ]
+        deletes : [ [ 1, 5 ], [ 6, 7 ] ]
+        

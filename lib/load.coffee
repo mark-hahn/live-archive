@@ -150,6 +150,54 @@ getTextAndPos = (idx, time) ->
   dbg 'getTextAndPos', tgtIdx, lineNum, charOfs
   {text, index: tgtIdx, lineNum, charOfs, auto: index[tgtIdx].isAuto}
 
+getHdrLen = (hdrFilePos) ->
+  buf = new Buffer 25
+  fd = fs.openSync dataPath, 'r'
+  fs.readSync fd, buf, 0, 25, hdrFilePos
+  fs.closeSync fd
+  pos = 0
+  hdrByte = buf.readUInt8 pos++, yes
+  deltaLenLen = hdrByte & 0x07
+  pos += deltaLenLen + 4
+  lineCursHdr = buf.readUInt8 pos++, yes
+  lineNumLen = ((lineCursHdr >>> 2) & 3) + 1
+  charOfsLen =  (lineCursHdr        & 3) + 1
+  pos + lineNumLen + charOfsLen
+  
+diffsForOneIdx = (idx) ->
+  {fileBegPos, fileEndPos} = index[idx]
+  hdrLen = getHdrLen fileBegPos
+  diffOfs = fileBegPos + hdrLen
+  diffsLen = (fileEndPos - fileBegPos) - hdrLen - 4
+  buf = new Buffer diffsLen
+  fd = fs.openSync dataPath, 'r'
+  fs.readSync fd, buf, 0, diffsLen, diffOfs
+  fs.closeSync fd
+  diffs = []
+  pos = 0
+  while pos < diffsLen
+    hdrByte    = buf.readUInt8 pos, yes
+    diffType   = ((hdrByte & DIFF_TYPE_MASK) >>> DIFF_TYPE_SHIFT)
+    countCode  =   hdrByte & DIFF_COUNT_CODE_MASK
+    if countCode <= 9
+      numBytesInDiffDataLen = 0
+      diffDataLen = countCode
+    else
+      numBytesInDiffDataLen = countCode - 9
+      diffDataLen = 0
+      for lenByteOfs in [1..numBytesInDiffDataLen]
+        diffDataLen *= 0x100
+        diffDataLen |= buf.readUInt8 pos + lenByteOfs, yes
+    if diffType isnt DIFF_BASE then diffs.push [diffType, diffDataLen]
+    pos += 1 + (if diffType is DIFF_EQUAL then 0 else diffDataLen)
+  diffs
+
+scanForDiffs = (idx, twoIdx) ->
+  retrn = diffsForIdx: diffsForOneIdx idx
+  if twoIdx and ++idx < index.length
+    retrn.diffsForNextIdx = diffsForOneIdx idx
+  retrn
+        
 getIndexes = (pos) ->
   idx = index.length
   try 
@@ -222,3 +270,29 @@ load.getTime = (idx) ->
 load.lastIndex = (path) ->
   setPath path
   (if index.length > 0 then index.length-1 else -1)
+
+load.getDiffs = (projPath, filePath, idx, twoIdx) ->
+  if not (path = load.getPath(projPath, filePath).path) then return {diffs: []}
+  setPath path
+  {diffsForIdx, diffsForNextIdx} = scanForDiffs idx, twoIdx
+  if not twoIdx then return diffsForIdx
+  inserts = []
+  pos = 0
+  for diff in diffsForIdx
+    [type, len] = diff
+    if type is   DIFF_INSERT then inserts.push [pos, pos+len]
+    if type isnt DIFF_DELETE then pos += len
+  deletes = []
+  pos = 0
+  for diff in diffsForNextIdx
+    [type, len] = diff
+    if type is   DIFF_DELETE then deletes.push [pos, pos+len]
+    if type isnt DIFF_INSERT then pos += len
+  {inserts, deletes}
+  
+      
+  
+  
+  
+  
+  
