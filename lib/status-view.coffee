@@ -1,7 +1,6 @@
 {View} = require 'atom'
 util   = require './utils'
-dbg    = util.debug 'edmgr'
-dbg2   = util.debug 'edmgr', 2
+#dbg    = util.debug 'edmgr'
  
 module.exports =
 class StatusView extends View
@@ -29,8 +28,11 @@ class StatusView extends View
     {time, curIndex, lastIndex, loadDelay, auto} = state
     if @notFound then @$notFoundDiv.show() else @$notFoundDiv.hide()
     time = @moment new Date time * 1000
-    @$msgDiv.html 'Version ' + (curIndex+1) + ' of ' + (lastIndex+1) + ', &nbsp;' +
-                 (if auto then 'Auto&nbsp;&nbsp;&nbsp;&nbsp;' else 'saved&nbsp;&nbsp;') +
-                 time.format 'YYYY-MM-DD HH:mm:ss'
+    @$msgDiv.html 'Version ' + (curIndex+1) + ' of ' + (lastIndex+1) + 
+                  ',&nbsp;&nbsp;&nbsp;&nbsp;Saved&nbsp;&nbsp;' +
+                 time.format('ddd') + '&nbsp;&nbsp;' +
+                 time.format('YYYY-MM-DD HH:mm:ss') + ',&nbsp; &nbsp;' +
+                 time.fromNow()
+                 
 
   destroy: -> @detach()

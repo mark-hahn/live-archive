@@ -19,6 +19,8 @@ bugs ...
   split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
   git and file btns broken 
+  editor crashes on split up with one source and one replay
+  reload on replay tab -> empty screen & chg warning
   
 specs ...
   add auto

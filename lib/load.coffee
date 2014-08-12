@@ -42,7 +42,8 @@ getDeltaHdr = (fdIn, fileOfs) ->
     if flags isnt 0xffffffff 
       throw new Exception 'corrupt live-archive data: ' + dataPath + ', ' + fileOfs
   pos = flagsLen
-  hdrByte = buf.readUInt8 pos++, yes
+  hdrByte = buf.readUInt8 pos, yes
+  pos += 1
   isAuto  = (hdrByte & AUTO_MASK) is AUTO_MASK
   hasBase = (hdrByte & BASE_MASK) is BASE_MASK
   deltaLenLen = hdrByte & 0x07
@@ -50,13 +51,15 @@ getDeltaHdr = (fdIn, fileOfs) ->
   pos += deltaLenLen
   time = buf.readUInt32BE pos, yes
   pos += 4
-  lineCursHdr = buf.readUInt8 pos++, yes
+  lineCursHdr = buf.readUInt8 pos, yes
+  pos += 1
   lineNumLen = ((lineCursHdr >>> 2) & 3) + 1
   charOfsLen =  (lineCursHdr        & 3) + 1
   lineNum = readUIntN lineNumLen, buf, pos
-  charOfs = readUIntN charOfsLen, buf, pos + lineNumLen
-  {time, lineNum, charOfs, hdrLen: pos - flagsLen + lineNumLen + charOfsLen, 
-  deltaLen, isAuto, hasBase}
+  pos += lineNumLen
+  charOfs = readUIntN charOfsLen, buf, pos
+  pos += charOfsLen
+  {time, lineNum, charOfs, hdrLen: pos - flagsLen, deltaLen, isAuto, hasBase}
 
 readDiff = (buf, ofs) ->
   hdrByte    = buf.readUInt8 ofs, yes
@@ -138,7 +141,7 @@ getTextAndPos = (idx, time) ->
   fs.closeSync fd
   baseText = readDiff(baseDiffsBuf, 0).diffStr
   if tgtIdx is baseIdx
-    dbg 'getTextAndPos from base', baseIdx
+    #dbg 'getTextAndPos from base', baseIdx
     return {text: baseText, index: baseIdx, lineNum, charOfs, auto: baseEntry.isAuto}
   idxInc = (if dist < 0 then 1 else -1)
   idx = baseIdx
@@ -147,7 +150,7 @@ getTextAndPos = (idx, time) ->
     processDeltas baseText, idx, idxInc, endIdx, baseIdx, baseDiffsBuf
   if idxInc < 0
     {lineNum, charOfs} = getDeltaHdr null, index[tgtIdx].fileBegPos
-  dbg 'getTextAndPos', tgtIdx, lineNum, charOfs
+  #dbg 'getTextAndPos', tgtIdx, lineNum, charOfs
   {text, index: tgtIdx, lineNum, charOfs, auto: index[tgtIdx].isAuto}
 
 getHdrLen = (hdrFilePos) ->
@@ -190,7 +193,8 @@ diffsForOneIdx = (idx) ->
         diffDataLen *= 0x100
         diffDataLen |= buf.readUInt8 pos + lenByteOfs, yes
     if diffType isnt DIFF_BASE then diffs.push [diffType, diffDataLen]
-    pos += 1 + (if diffType is DIFF_EQUAL then 0 else diffDataLen)
+    pos += 1 + numBytesInDiffDataLen +
+          (if diffType is DIFF_EQUAL then 0 else diffDataLen)
   diffs
 
 scanForDiffs = (idx, twoIdx) ->
@@ -241,7 +245,7 @@ load = exports
 load.getPath = (projPath, filePath) ->
   liveArchiveDir = projPath + '/.live-archive'
   if not fs.existsSync liveArchiveDir
-    dbg 'no .live-archive dir in', projPath
+    #dbg 'no .live-archive dir in', projPath
     return {}
   projDirs  = projPath.split /\/|\\/g
   fileParts = filePath.split /\/|\\/g
@@ -290,10 +294,31 @@ load.getDiffs = (projPath, filePath, idx, twoIdx) ->
     if type is   DIFF_DELETE then deletes.push [pos, pos+len]
     if type isnt DIFF_INSERT then pos += len
   {inserts, deletes}
-  
-      
-  
-  
-  
-  
+
+load.trackPos = (projPath, filePath, startIdx, endIdx, positions) ->
+  if not (path = load.getPath(projPath, filePath).path) or startIdx is endIdx
+    return positions
+  setPath path
+  if (fwd = (startIdx <= endIdx)) then ++startIdx else ++endIdx
+  for idx in [startIdx..endIdx]
+    diffs = diffsForOneIdx idx
+    textPosIn = textPosOut = diffIdx = posIdx = 0
+    while (diff = diffs[diffIdx++]) and (position = positions[posIdx])?
+      [type, len] = diff
+      endTextPosIn = textPosIn + len
+      if type is DIFF_EQUAL
+        while position? and textPosIn <= position < endTextPosIn
+          positions[posIdx] += textPosOut - textPosIn
+          position = positions[++posIdx]
+        textPosIn  += len
+        textPosOut += len
+      else if fwd and type is DIFF_DELETE or not fwd and type is DIFF_INSERT
+        while position? and textPosIn <= position < endTextPosIn
+          positions[posIdx] = Math.max 0, textPosOut - 1
+          position = positions[++posIdx]
+        textPosIn  += len
+      else
+        textPosOut += len
+  positions
+
   

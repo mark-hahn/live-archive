@@ -1,6 +1,5 @@
 
 dbg  = require('./utils').debug 'larch'
-dbg2 = require('./utils').debug 'larch', 2
 
 module.exports = 
   activate: ->
@@ -25,17 +24,17 @@ module.exports =
       baseName = archivePath[archiveIdx+4...]
       dirPath  = archivePath[@archiveDir.length+1...archiveIdx]
       origPath = @rootDir + '/' + dirPath + '/' + baseName
-      dbg 'eachEditorView', {archivePath, archiveIdx, baseName, dirPath, origPath}
-      new @EditorMgr @, editor, origPath, archivePath
+      #dbg 'eachEditorView', {archiveIdx, baseName, dirPath, origPath}
+      new @EditorMgr @, editor, origPath
 
     atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
-      dbg 'pane-item-changed'
+      #dbg 'pane-item-changed'
       if not @chkProjFolder() then return
       @EditorMgr.hideAll()
 
       editorView = atom.workspaceView.getActiveView()
       if not (editor = editorView?.getEditor?())
-        dbg 'no editor in this tab'
+        #dbg 'no editor in this tab'
         return
       editor.liveArchiveEditorMgr?.show()
     
@@ -53,7 +52,7 @@ module.exports =
                          'Click "Create" to create the folder and enable live archiving.'
         buttons: ['Create', 'Cancel']
       if choice is 1 then return @noProjFolder()
-      dbg 'creating ' + @archiveDir
+      #dbg 'creating ' + @archiveDir
       @mkdirp @archiveDir
     @setStatusBarMsg 'Archiving', 1
     yes
@@ -70,7 +69,7 @@ module.exports =
     if /(\\|\/)\<\-\s/.test buffer.getUri() then return
     lineNum    = editorView.getFirstVisibleScreenRow()
     lineBufOfs = buffer.characterIndexForPosition [lineNum, 0]
-    cursor     = editor.getLastSelection().cursor
+    cursor     = editor.getCursor()
     cursBufOfs = buffer.characterIndexForPosition cursor.getBufferPosition()
     charOfs    = cursBufOfs - lineBufOfs
     start      = Date.now()
@@ -86,34 +85,34 @@ module.exports =
     if not (@chkProjFolder yes) then return
     editorView = atom.workspaceView.getActiveView()
     if not (editor = editorView?.getEditor?())
-      dbg 'no editor in this tab'
+      #dbg 'no editor in this tab'
       return
     origPath = @pathUtil.normalize editor.getUri()
     dirName  = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
     baseName = @pathUtil.basename origPath    # live-archive.coffee
     relPath  = origPath[@rootDir.length+1...] # lib\live-archive.coffee
     dirPath  = @pathUtil.dirname relPath # lib
-    archivePath = @pathUtil.normalize @archiveDir + '/' + dirPath + '/<- ' + baseName
+    replayTabPath = @pathUtil.normalize @archiveDir + '/' + dirPath + '/<- ' + baseName
                     # c:\apps\live-archive/.live-archive/lib/<- live-archive.coffee
 
     if baseName[0..1] is '<- '
-      dbg 'you cannot open a review editor for a review file'
+      #dbg 'you cannot open a review editor for a review file'
       return
     
     ## this doesn't work for unopened tabs
     # for editorView in atom.workspaceView.getEditorViews()
-    #   dbg 'getUri', editorView.getEditor().getUri()
+    #   #dbg 'getUri', editorView.getEditor().getUri()
     #   if editorView.getEditor().getUri() is archivePath
-    #     dbg 'select tab'
+    #     #dbg 'select tab'
     #     return
     
-    atom.workspaceView.open(archivePath).then (editor) =>
+    atom.workspaceView.open(replayTabPath).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
-        editorMgr = new @EditorMgr @, editor, origPath, archivePath
+        editorMgr = new @EditorMgr @, editor, origPath
         if editorMgr.invalid then return
-        dbg 'openReviewEditor created EditorMgr', editorMgr
+        #dbg 'openReviewEditor created EditorMgr', editorMgr
       else
-        dbg 'openReviewEditor found EditorMgr', editorMgr
+        #dbg 'openReviewEditor found EditorMgr', editorMgr
 
   deactivate: -> @EditorMgr.destroyAll()
   
