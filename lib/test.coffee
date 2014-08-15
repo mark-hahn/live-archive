@@ -1,9 +1,1 @@
- 
-
-apwe
-
-
-This is t e t version for now
-
-
-rshstns
+½ + ¼ = ¾

@@ -6,13 +6,13 @@
   "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
   "engines": {
-    "atom": ">0.50.0"
+    "atom": ">=0.121.0"
   },
   "dependencies": {
     "mkdirp":           "0.5.x",
     "binarysearch":     "0.2.x",
     "diff_match_patch": "0.1.x",
-    "moment":           "2.7.0"
+    "moment":           ">=2.7.0"
   },
   "activationEvents": []
 }

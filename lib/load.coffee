@@ -1,12 +1,11 @@
 # lib\load.coffee
 
 fs         = require 'fs'
+zlib       = require 'zlib'
 pathUtil   = require 'path'
 mkdirp     = require 'mkdirp'
 binSrch    = require 'binarysearch'
 dbg        = require('./utils').debug 'load'
-
-# {uncompress} = require 'compress-buffer'
 
 DIFF_EQUAL  = 0
 DIFF_INSERT = 1
@@ -69,7 +68,7 @@ readDiff = (buf, ofs) ->
     diffLen += diffDataLen
     dataOfs = ofs + 1 + numBytesInDiffDataLen
     diffDataBuf = buf.slice dataOfs, dataOfs + diffDataLen
-    # if compressed then diffDataBuf = uncompress diffDataBuf
+    if compressed then diffDataBuf = zlib.inflateSync diffDataBuf
     diffStr = diffDataBuf.toString()
   {diffType, diffStr, diffLen, diffDataLen}
 
@@ -175,7 +174,7 @@ diffsForOneIdx = (idx, includeDataStr) ->
       if includeDataStr and diffType isnt DIFF_EQUAL
         dataOfs = 1 + numBytesInDiffDataLen
         diffDataBuf = buf.slice dataOfs, dataOfs + diffDataLen
-        # if compressed then diffDataBuf = uncompress diffDataBuf
+        if compressed then diffDataBuf = zlib.inflateSync diffDataBuf
         diff.push diffDataBuf.toString()
       diffs.push diff
     pos += 1 + numBytesInDiffDataLen +
@@ -250,9 +249,7 @@ load.text = (projPath, filePath, idx, time) ->
   if idx < 0 then return {text: ''}
   getTextAndPos idx, time
 
-load.getTime = (idx) -> 
-  if index.length is 0 then return 0
-  index[idx].time
+load.getTime = (idx) -> index[idx]?.time
   
 load.lastIndex = (path) ->
   setPath path

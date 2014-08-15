@@ -10,7 +10,7 @@
   - Archive is highly compressed
     - Text differencing with excellent google diff-match-patch
     - Bit-level binary archive format
-    - Large blocks of text compressed with zlib (coming soon)
+    - Large blocks of text compressed with zlib
     - Only twelve bytes overhead per version
   - Archive format and features can change in future
     - Old formatted data still available in same file
@@ -93,6 +93,3 @@
 
 ### To-Do
 - More spec tests (as always)
-- test big unicode chars.
-  '\u00bd + \u00bc = \u00be' =>  ½ + ¼ = ¾ => 9 characters => 12 bytes
-- compress base text when sync compression available (node 0.11.12)

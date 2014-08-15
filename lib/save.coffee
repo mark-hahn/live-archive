@@ -1,6 +1,7 @@
 
 fs       = require 'fs'
 pathUtil = require 'path'
+zlib     = require 'zlib'
 mkdirp   = require 'mkdirp'
 dbg      = require('./utils').debug 'save'
 dmpmod   = require 'diff_match_patch'
@@ -70,16 +71,19 @@ getDiffBuf = (diffType, diffData, compressed) ->
   diffBuf
 
 appendDelta = (diffList) ->
-  hasBase = no
   deltaHdrBufLen = 1 + 4
   
   diffsLen = 0
   for diff in diffList
-    [diffType, diffStr] = diff
-    hasBase or= (diffType is DIFF_BASE)
-    diffData = diffStr
+    [diffType, diffData] = diff
     compressed = no
-    # if hasBase then diffData = compress new Buffer diffStr; compressed = yes
+    if diffType isnt DIFF_EQUAL
+      compressedText = zlib.deflateSync diffData
+      # dbg 'compression test', diffData.length, Buffer.byteLength(diffData), compressedText.length
+      if compressedText.length < Buffer.byteLength diffData
+        diffData = compressedText
+        # dbg 'using compressed'
+        compressed = yes
     diff[1] = diffBuf = getDiffBuf diffType, diffData, compressed
     diffsLen += diffBuf.length
   
