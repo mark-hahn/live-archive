@@ -1,29 +1,30 @@
 
-write js to cs intro
-
 features ... 
-  difference highliting
   use theme colors
-  sync btn to set all editors to same save time
   catch file errors and display and handle
-  implement scroll options
-  filters
-    visible
-    git (all commits)
   ruler 
-  close button -- same as close in dialog
-  remove file btn
   btn to set source file to review buf contents
+  context menus
+  live line num display
+  first open should use source position 
+  switch adding view panes to use workspace funcs
+  tune diff engine
+  fake sync compression
+  show change counts in status view
+  
 
 bugs ...
   split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
-  git and file btns broken 
   editor crashes on split up with one source and one replay
-  reload on replay tab -> empty screen & chg warning
+  
+  stop diff srch on ver showing del marker, not empty next one
+  
+  git with diff
+  clip getCursorBufferPosition in screen before nav
+  switching back to replay tab goes to last version
   
 specs ...
-  add auto
   do atom ui
   add load.getTime, load.getDiffs, load.lastIndex
   

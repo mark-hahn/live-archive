@@ -3,16 +3,10 @@ fs       = require 'fs'
 pathUtil = require 'path'
 mkdirp   = require 'mkdirp'
 dbg      = require('./utils').debug 'save'
-
-# {compress} = require 'compress-buffer'
-
 dmpmod   = require 'diff_match_patch'
 dmp      = new dmpmod.diff_match_patch()
+load     = require './load'
 
-checkFiles = require './checkFiles'
-load       = require './load'
-
-AUTO_MASK = 0x20
 BASE_MASK = 0x10
 
 DIFF_EQUAL  = 0
@@ -20,7 +14,7 @@ DIFF_INSERT = 1
 DIFF_BASE   = 2
 DIFF_DELETE = 3
 DIFF_SHIFT  = 4
-DIFF_COMPRESSED_MASK  = 0x40
+DIFF_COMPRESSED_MASK = 0x40
 
 saveTime = 0
 curPath = curText = dataFileSize = curPath = null
@@ -75,13 +69,9 @@ getDiffBuf = (diffType, diffData, compressed) ->
     else                     diffData.copy diffBuf,  diffDataOfs
   diffBuf
 
-appendDelta = (lineNum, charOfs, diffList, auto) ->
+appendDelta = (diffList) ->
   hasBase = no
-  lineNumBuf = getUIntVBuf lineNum
-  lineNumLen = lineNumBuf.length
-  charOfsBuf = getUIntVBuf charOfs
-  charOfsLen = charOfsBuf.length
-  deltaHdrBufLen = 1 + 4 + 1 + lineNumLen + charOfsLen
+  deltaHdrBufLen = 1 + 4
   
   diffsLen = 0
   for diff in diffList
@@ -93,7 +83,7 @@ appendDelta = (lineNum, charOfs, diffList, auto) ->
     diff[1] = diffBuf = getDiffBuf diffType, diffData, compressed
     diffsLen += diffBuf.length
   
-  deltaLen = 1 + 0 + 4 + 1 + lineNumLen + charOfsLen + diffsLen + 4
+  deltaLen = 1 + 0 + 4 + diffsLen + 4
 
   for deltaLenLenTrial in [1..6]
     deltaLenLen = 1
@@ -108,17 +98,12 @@ appendDelta = (lineNum, charOfs, diffList, auto) ->
 
   deltaBuf = new Buffer deltaLen
   deltaHdrByte = deltaLenLenTrial
-  if auto    then deltaHdrByte |= AUTO_MASK
-  if hasBase then deltaHdrByte |= BASE_MASK
   deltaBuf.writeUInt8 deltaHdrByte, 0, yes
   writeUIntN deltaLen, deltaLenLenTrial, deltaBuf, 1
   pos = 1 + deltaLenLenTrial
   saveTime = Math.max saveTime + 3, Math.floor Date.now() / 1000
   deltaBuf.writeUInt32BE saveTime, pos, yes
   pos += 4
-  deltaBuf.writeUInt8 ((lineNumLen-1) << 4) | (charOfsLen-1), pos++, yes
-  lineNumBuf.copy deltaBuf, pos; pos += lineNumLen
-  charOfsBuf.copy deltaBuf, pos; pos += charOfsLen
   for diff in diffList
     [diffType, diffBuf] = diff
     diffBuf.copy deltaBuf, pos
@@ -129,7 +114,7 @@ appendDelta = (lineNum, charOfs, diffList, auto) ->
 
 save = exports
 
-save.text = (projPath, filePath, text, lineNum, charOfs, base, auto) ->
+save.text = (projPath, filePath, text, base) ->
   {path, dataFileSize} = load.getPath projPath, filePath
   if not path or path is curPath and text is curText then return no
   if path isnt curPath
@@ -138,8 +123,9 @@ save.text = (projPath, filePath, text, lineNum, charOfs, base, auto) ->
   diffList = (if dataFileSize is 0 or base then [[DIFF_BASE, text]] else [])
   if curText? and dataFileSize 
     diffList = diffList.concat dmp.diff_main curText, text
+    dmp.diff_cleanupSemantic diffList
   hasChange = no
   for diff in diffList then if diff[0] isnt 0 then hasChange = yes; break
-  if hasChange then appendDelta lineNum, charOfs, diffList, auto
+  if hasChange then appendDelta diffList
   curText = text
   hasChange

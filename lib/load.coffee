@@ -8,9 +8,6 @@ dbg        = require('./utils').debug 'load'
 
 # {uncompress} = require 'compress-buffer'
 
-AUTO_MASK = 0x20
-BASE_MASK = 0x10
-
 DIFF_EQUAL  = 0
 DIFF_INSERT = 1
 DIFF_BASE   = 2
@@ -31,35 +28,26 @@ readUIntN = (n, buf, ofs) ->
   num
 
 getDeltaHdr = (fdIn, fileOfs) ->
-  buf = new Buffer 25
+  flagsLen = (if fileOfs is 0 then 0 else 4)  
+  buf = new Buffer 16
   fd = (if fdIn then fdIn else fs.openSync dataPath, 'r')
-  fs.readSync fd, buf, 0, 25, fileOfs + (if fileOfs is 0 then 0 else -4)
+  fs.readSync fd, buf, 0, 16, fileOfs - flagsLen
   if not fdIn then fs.closeSync fd
   pos = 0
-  flagsLen = (if fileOfs is 0 then 0 else 4)
   if flagsLen
-    flags = buf.readUInt32BE 0, yes
+    flags = buf.readUInt32BE pos, yes
     if flags isnt 0xffffffff 
       throw new Exception 'corrupt live-archive data: ' + dataPath + ', ' + fileOfs
-  pos = flagsLen
+  pos += flagsLen
   hdrByte = buf.readUInt8 pos, yes
   pos += 1
-  isAuto  = (hdrByte & AUTO_MASK) is AUTO_MASK
-  hasBase = (hdrByte & BASE_MASK) is BASE_MASK
   deltaLenLen = hdrByte & 0x07
   deltaLen = readUIntN deltaLenLen, buf, pos
   pos += deltaLenLen
   time = buf.readUInt32BE pos, yes
   pos += 4
-  lineCursHdr = buf.readUInt8 pos, yes
-  pos += 1
-  lineNumLen = ((lineCursHdr >>> 2) & 3) + 1
-  charOfsLen =  (lineCursHdr        & 3) + 1
-  lineNum = readUIntN lineNumLen, buf, pos
-  pos += lineNumLen
-  charOfs = readUIntN charOfsLen, buf, pos
-  pos += charOfsLen
-  {time, lineNum, charOfs, hdrLen: pos - flagsLen, deltaLen, isAuto, hasBase}
+  hasBase = ((buf.readUInt8(pos, yes) & DIFF_TYPE_MASK) >>> DIFF_TYPE_SHIFT) is DIFF_BASE
+  {time, hdrLen: pos - flagsLen, deltaLen, hasBase}
 
 readDiff = (buf, ofs) ->
   hdrByte    = buf.readUInt8 ofs, yes
@@ -93,7 +81,7 @@ processDeltas = (text, idx, idxInc, endIdx, baseIdx, baseDiffsBuf) ->
         diffsBufs.push baseDiffsBuf
     else
       {fileBegPos} = index[idx]
-      {hdrLen, deltaLen, lineNum, charOfs} = getDeltaHdr fd, fileBegPos
+      {hdrLen, deltaLen} = getDeltaHdr fd, fileBegPos
       diffsLen = deltaLen - hdrLen - 4
       diffsBuf = new Buffer diffsLen
       fs.readSync fd, diffsBuf, 0, diffsLen, fileBegPos + hdrLen
@@ -118,14 +106,14 @@ processDeltas = (text, idx, idxInc, endIdx, baseIdx, baseDiffsBuf) ->
       else
       diffPos += diffLen
     text = nextText
-  {text, lineNum, charOfs, deltaLen}
+  {text, deltaLen}
 
 getTextAndPos = (idx, time) ->
-  if index.length is 0 then return {text: '', index: -1, lineNum: 0, charOfs: 0}
+  if index.length is 0 then return {text: '', index: -1}
   if time?
     idx = binSrch.closest index, time, (entry, tgt) -> entry.time - tgt
     if time < index[idx].time then idx--
-  if idx < 0 then return {text: '', index: -1, lineNum: 0, charOfs: 0}
+  if idx < 0 then return {text: '', index: -1}
   tgtIdx = endIdx = idx
   dist = 0
   loop
@@ -133,7 +121,7 @@ getTextAndPos = (idx, time) ->
     if (baseEntry = index[endIdx + dist]) and baseEntry.hasBase then break
     if dist <= 0 then dist--
   baseIdx = endIdx + dist
-  {hdrLen, lineNum, charOfs, deltaLen} = getDeltaHdr null, baseEntry.fileBegPos
+  {hdrLen, deltaLen} = getDeltaHdr null, baseEntry.fileBegPos
   baseDiffsLen = deltaLen - hdrLen - 4
   baseDiffsBuf = new Buffer baseDiffsLen
   fd = fs.openSync dataPath, 'r'
@@ -141,33 +129,22 @@ getTextAndPos = (idx, time) ->
   fs.closeSync fd
   baseText = readDiff(baseDiffsBuf, 0).diffStr
   if tgtIdx is baseIdx
-    #dbg 'getTextAndPos from base', baseIdx
-    return {text: baseText, index: baseIdx, lineNum, charOfs, auto: baseEntry.isAuto}
+    return {text: baseText, index: baseIdx}
   idxInc = (if dist < 0 then 1 else -1)
   idx = baseIdx
   if idxInc > 0 then idx++; endIdx++
-  {text, lineNum, charOfs} =
-    processDeltas baseText, idx, idxInc, endIdx, baseIdx, baseDiffsBuf
-  if idxInc < 0
-    {lineNum, charOfs} = getDeltaHdr null, index[tgtIdx].fileBegPos
-  #dbg 'getTextAndPos', tgtIdx, lineNum, charOfs
-  {text, index: tgtIdx, lineNum, charOfs, auto: index[tgtIdx].isAuto}
+  {text} = processDeltas baseText, idx, idxInc, endIdx, baseIdx, baseDiffsBuf
+  {text, index: tgtIdx}
 
 getHdrLen = (hdrFilePos) ->
-  buf = new Buffer 25
+  buf = new Buffer 7
   fd = fs.openSync dataPath, 'r'
-  fs.readSync fd, buf, 0, 25, hdrFilePos
+  fs.readSync fd, buf, 0, 7, hdrFilePos
   fs.closeSync fd
-  pos = 0
-  hdrByte = buf.readUInt8 pos++, yes
-  deltaLenLen = hdrByte & 0x07
-  pos += deltaLenLen + 4
-  lineCursHdr = buf.readUInt8 pos++, yes
-  lineNumLen = ((lineCursHdr >>> 2) & 3) + 1
-  charOfsLen =  (lineCursHdr        & 3) + 1
-  pos + lineNumLen + charOfsLen
+  hdrByte = buf.readUInt8 0, yes
+  1 + (hdrByte & 0x07) + 4
   
-diffsForOneIdx = (idx) ->
+diffsForOneIdx = (idx, includeDataStr) ->
   if idx >= index.length then return []
   {fileBegPos, fileEndPos} = index[idx]
   hdrLen = getHdrLen fileBegPos
@@ -181,6 +158,7 @@ diffsForOneIdx = (idx) ->
   pos = 0
   while pos < diffsLen
     hdrByte    = buf.readUInt8 pos, yes
+    compressed = ((hdrByte & DIFF_COMPRESSED_MASK) is DIFF_COMPRESSED_MASK)
     diffType   = ((hdrByte & DIFF_TYPE_MASK) >>> DIFF_TYPE_SHIFT)
     countCode  =   hdrByte & DIFF_COUNT_CODE_MASK
     if countCode <= 9
@@ -192,7 +170,14 @@ diffsForOneIdx = (idx) ->
       for lenByteOfs in [1..numBytesInDiffDataLen]
         diffDataLen *= 0x100
         diffDataLen |= buf.readUInt8 pos + lenByteOfs, yes
-    if diffType isnt DIFF_BASE then diffs.push [diffType, diffDataLen]
+    if diffType isnt DIFF_BASE
+      diff = [diffType, diffDataLen]
+      if includeDataStr and diffType isnt DIFF_EQUAL
+        dataOfs = 1 + numBytesInDiffDataLen
+        diffDataBuf = buf.slice dataOfs, dataOfs + diffDataLen
+        # if compressed then diffDataBuf = uncompress diffDataBuf
+        diff.push diffDataBuf.toString()
+      diffs.push diff
     pos += 1 + numBytesInDiffDataLen +
           (if diffType is DIFF_EQUAL then 0 else diffDataLen)
   diffs
@@ -211,12 +196,12 @@ getIndexes = (pos) ->
   if pos is fileSize then return
   fd = fs.openSync dataPath, 'r'
   while pos < fileSize
-    {time, deltaLen, isAuto, hasBase} = getDeltaHdr fd, pos
+    {time, deltaLen, hasBase} = getDeltaHdr fd, pos
     index.push {
       fileBegPos: pos
       fileEndPos: pos + deltaLen
       idx: idx++
-      isAuto, hasBase, time
+      hasBase, time
     }
     pos += deltaLen
   if pos > 0
@@ -244,9 +229,7 @@ load = exports
 
 load.getPath = (projPath, filePath) ->
   liveArchiveDir = projPath + '/.live-archive'
-  if not fs.existsSync liveArchiveDir
-    #dbg 'no .live-archive dir in', projPath
-    return {}
+  if not fs.existsSync liveArchiveDir then return {}
   projDirs  = projPath.split /\/|\\/g
   fileParts = filePath.split /\/|\\/g
   pathDir = liveArchiveDir +
@@ -321,4 +304,18 @@ load.trackPos = (projPath, filePath, startIdx, endIdx, positions) ->
         textPosOut += len
   positions
 
-  
+load.searchDiffs = (projPath, filePath, idx, inc, searchStr) ->
+  if not (path = load.getPath(projPath, filePath).path)
+    return positions
+  setPath path
+  loop
+    idx += inc
+    if not (0 <= idx < index.length) then return
+    diffs = diffsForOneIdx idx, yes
+    textPos = 0
+    for diff in diffs
+      [diffType, diffDataLen, strData] = diff
+      if strData and strData.toLowerCase().indexOf(searchStr) > -1
+        return {idx, textPos}
+      textPos += diffDataLen
+    
