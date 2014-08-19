@@ -105,7 +105,7 @@ class EditorMgr
         idx = @curIndex
         break
       if diffs.length is 0 then found = yes; break
-    #dbg 'findGitHead', diffs, idx
+    dbg 'findGitHead', diffs, idx
     if not found 
       @statusView.setNotFound()
       return @curIndex
@@ -219,7 +219,7 @@ class EditorMgr
     botBufPos  = @buffer.characterIndexForPosition [botLineNum, 0]
     for range in @inserts.concat @deletes
       [beg, end] = range
-      if not (end < topBufPos or beg > botBufPos) then return
+      if not (end < topBufPos or beg > botBufPos) then return yes
       
   diffsBtn: (btnOn) ->
     @navDiffs = btnOn

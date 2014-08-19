@@ -61,8 +61,8 @@ class ReplayView extends View
     @editorMgr.loadEditor btn, btnOn, null, val
     
   setBtn: (btn, btnOn) ->
-    $btn = @find ':contains("' + btn + '")'
-    if $btn.length > 1 then $btn = @find $btn.get(if btn is 'Diff' then 1 else 2)
+    $btn = @find ':contains("' + btn + '"):not(.btn-group)'
+    if $btn.length > 1 then $btn = @find $btn.get(if btn is 'Diff' then 0 else 1)
     @btnStates ?= {}
     @btnStates[btn] = btnOn
     dbg 'setBtn css', {btn, btnOn, $btn}
