@@ -172,7 +172,7 @@ diffsForOneIdx = (idx, includeDataStr) ->
     if diffType isnt DIFF_BASE
       diff = [diffType, diffDataLen]
       if includeDataStr and diffType isnt DIFF_EQUAL
-        dataOfs = 1 + numBytesInDiffDataLen
+        dataOfs = pos + 1 + numBytesInDiffDataLen
         diffDataBuf = buf.slice dataOfs, dataOfs + diffDataLen
         if compressed then diffDataBuf = zlib.inflateSync diffDataBuf
         diff.push diffDataBuf.toString()

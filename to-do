@@ -19,6 +19,7 @@ bugs ...
   stop diff srch on ver showing del marker, not empty next one
   git with diff
   search in diffs always working?
+  ctrl-z until tab empty and rewrite history warning shows -- press cancel -- atom closes
   
 specs ...
   do atom ui

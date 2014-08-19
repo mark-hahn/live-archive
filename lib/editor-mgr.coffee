@@ -70,10 +70,10 @@ class EditorMgr
     [centerLine, cursPos]
     
   setViewPos: (pos, view) ->
-    if pos? and view
+    if pos? and view and (editor = view.getEditor())
       [centerLine, cursPos] = pos
-      dbg 'setViewPos centerLine', centerLine
-      view.getEditor().setCursorBufferPosition cursPos, autoscroll: no
+      # dbg 'setViewPos centerLine', centerLine
+      editor.setCursorBufferPosition cursPos, autoscroll: no
       view.scrollToBufferPosition [centerLine, 0], center: yes
       
   getBufOfsFromViewPos: (editor = @editor) ->
@@ -248,6 +248,7 @@ class EditorMgr
       
   search: (inc, searchStr) ->
     searchStr = searchStr.toLowerCase()
+    # dbg 'search', inc, searchStr
     if @SrchInDiffs
       res = load.searchDiffs EditorMgr.rootDir, @origPath,  @curIndex, inc, searchStr
       if res

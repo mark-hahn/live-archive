@@ -9,10 +9,12 @@
     "atom": ">=0.121.0"
   },
   "dependencies": {
-    "mkdirp":           "0.5.x",
-    "binarysearch":     "0.2.x",
-    "diff_match_patch": "0.1.x",
-    "moment":           ">=2.7.0"
+    "mkdirp":            "0.5.x",
+    "binarysearch":      "0.2.x",
+    "diff_match_patch":  "0.1.x",
+    "moment":            ">=2.7.0",
+    "underscore-plus":   ">=1.5.1",
+    "underscore.string": ""
   },
   "activationEvents": []
 }

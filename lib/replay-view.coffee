@@ -1,4 +1,7 @@
 {View} = require 'atom'
+_ = require 'underscore-plus'
+_.str = require 'underscore.string'
+
 dbg = require('./utils').debug 'repvw'
 
 module.exports =
@@ -30,12 +33,12 @@ class ReplayView extends View
         @div class:'btn', '^'
 
       # @div class: 'btn-group', =>
-      @div class:'btn', style:'margin-left:15px', '<'
+      @div class:'btn srchBtn', style:'margin-left:15px', '<'
       @input 
         placeholder: 'Search Text'
         class: 'native-key-bindings srchInp'
         style: 'position:relative; top:2px; height: 22px; width: 80px; font-size: 14px'
-      @div class:'btn', '>'
+      @div class:'btn srchBtn', '>'
       @div class:'btn toggle', 'In Diffs'
         
       @div class: 'btn-group', style:'margin-left:15px', =>
@@ -51,7 +54,8 @@ class ReplayView extends View
     if $btn.hasClass 'srchInp' then return
     if $btn.hasClass 'srchBtn' 
       btn += 'srch'
-      val = _.trim @srch.val()
+      val = _.str.trim @srch.val()
+      dbg 'handle',  {val, srchVal: @srch.val()}
       if not val then return
     if $btn.hasClass 'toggle'
       @btnStates ?= {}
