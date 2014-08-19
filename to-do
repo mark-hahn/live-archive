@@ -1,38 +1,31 @@
 
-behavior ...
-  move down a line after toggling comment
-
 features ... 
-  use theme colors
   catch file errors and display and handle
   ruler 
   context menus
   switch adding view panes to use workspace funcs
-  nav by diff should use visible screen, not cursor
   auto-save when viewing replay of source with no archive
   ctrl-alt-a should go back one version when replay showing
 
-bugs ...
+behavior ...
+  move down a line after toggling comment
+
+bad behavior ...
+  versions with no diff highlighting
+  position drifts when navigating
+  splitting panes hides replay dialog
   split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
-  editor crashes on split up with one source and one replay
   stop diff srch on ver showing del marker, not empty next one
+  show something on deletes in actual vers page
+
+bugs ...
   git with diff
-  search in diffs always working?
+  editor crashes on split up with one source and one replay
   ctrl-z until tab empty and rewrite history warning shows -- press cancel -- atom closes
-  
-specs ...
-  do atom ui
-  add load.getTime, load.getDiffs, load.lastIndex, load.searchDiffs, load.trackPos
-  
+  v20 of package.json missing some hiliting
+
 test ...
   test with all themes
   minimap
-- test big unicode chars.
-  '\u00bd + \u00bc = \u00be' =>  ½ + ¼ = ¾ => 9 characters => 12 bytes
-   ½ + ¼ = ¾
-   ½ + ¼ = ¾
-notes ...
-  splitting panes hides replay dialog
-  requires atom version >= v0.121.0
   

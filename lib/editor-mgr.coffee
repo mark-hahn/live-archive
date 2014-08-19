@@ -164,12 +164,16 @@ class EditorMgr
         delRange  = Range.fromObject [delBegPos, delEndPos]
         if not ins then setMarker delRange, 'la-delete'; deleteIdx++; continue
       switch insRange.compare delRange
-        when  0 then setMarker insRange, 'la-ins-del'; insertIdx++; deleteIdx++
+        when  0 
+          setMarker insRange, 'la-insert'
+          setMarker insRange, 'la-delete'
+          insertIdx++; deleteIdx++
         when -1
           if insBufEndOfs <= delBufBegOfs # ins totally before del
             setMarker insRange, 'la-insert'; insertIdx++; continue
           if insBegPos is delBegPos # del end before ins end
-            setMarker Range.fromObject([insBegPos, delEndPos]), 'la-ins-del'
+            setMarker Range.fromObject([insBegPos, delEndPos]), 'la-insert'
+            setMarker Range.fromObject([insBegPos, delEndPos]), 'la-delete'
             inserts[insertIdx][0] = delBufEndOfs
             deleteIdx++
           else    # ins beg before del beg
@@ -180,7 +184,8 @@ class EditorMgr
           if delBufEndOfs <= insBufBegOfs # del totally before ins
             setMarker delRange, 'la-delete'; deleteIdx++; continue
           if delBegPos is insBegPos # ins end before del end
-            setMarker Range.fromObject([delBegPos, insEndPos]), 'la-del-ins'
+            setMarker Range.fromObject([delBegPos, insEndPos]), 'la-insert'
+            setMarker Range.fromObject([delBegPos, insEndPos]), 'la-delete'
             deletes[deleteIdx][0] = insBufEndOfs
             insertIdx++
           else    # del beg before ins beg
