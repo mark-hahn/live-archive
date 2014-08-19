@@ -118,6 +118,41 @@ appendDelta = (diffList) ->
 
 save = exports
 
+save.trackPos = (text1, text2, posIn) ->
+  numPos = 0; for i of posIn then numPos++
+  textPosIn = textPosOut = diffIdx = done = 0
+  posOut = {}
+  for diff in dmp.diff_main text1, text2
+    [type, str] = diff
+    len = str.length
+    endTextPosIn = textPosIn + len
+    switch type
+      when 0  # EQUAL
+        for key, pos of posIn
+          if pos < endTextPosIn 
+            posOut[key] = pos + (textPosOut - textPosIn)
+            delete posIn[key]
+            if --numPos is 0 then return posOut
+        textPosIn  += len
+        textPosOut += len
+      when -1 # DELETE
+        for key, pos of posIn
+          if pos < endTextPosIn
+            posOut[key] = textPosOut
+            delete posIn[key]
+            if --numPos is 0 then return posOut
+        textPosIn  += len
+      else # +1 INSERT
+        for key, pos of posIn
+          if pos <= textPosIn
+            posOut[key] = pos
+            delete posIn[key]
+            if --numPos is 0 then return posOut
+        textPosOut += len
+  for key of posIn
+    posOut[key] = pos + (textPosOut - textPosIn)
+  posOut
+  
 save.text = (projPath, filePath, text, base) ->
   {path, dataFileSize} = load.getPath projPath, filePath
   if not path or path is curPath and text is curText then return no

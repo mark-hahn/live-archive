@@ -242,13 +242,6 @@ load.getPath = (projPath, filePath) ->
     dataFileSize = 0
   {path, dataFileSize}
 
-load.text = (projPath, filePath, idx, time) ->
-  if not (path = load.getPath(projPath, filePath).path) then return {text: ''}
-  setPath path
-  idx ?= index.length - 1
-  if idx < 0 then return {text: ''}
-  getTextAndPos idx, time
-
 load.getTime = (idx) -> index[idx]?.time
   
 load.lastIndex = (path) ->
@@ -275,32 +268,6 @@ load.getDiffs = (projPath, filePath, idx, twoIdx) ->
     if type isnt DIFF_INSERT then pos += len
   {inserts, deletes}
 
-load.trackPos = (projPath, filePath, startIdx, endIdx, positions) ->
-  if not (path = load.getPath(projPath, filePath).path) or startIdx is endIdx
-    return positions
-  setPath path
-  if (fwd = (startIdx <= endIdx)) then ++startIdx else ++endIdx
-  for idx in [startIdx..endIdx]
-    diffs = diffsForOneIdx idx
-    textPosIn = textPosOut = diffIdx = posIdx = 0
-    while (diff = diffs[diffIdx++]) and (position = positions[posIdx])?
-      [type, len] = diff
-      endTextPosIn = textPosIn + len
-      if type is DIFF_EQUAL
-        while position? and textPosIn <= position < endTextPosIn
-          positions[posIdx] += textPosOut - textPosIn
-          position = positions[++posIdx]
-        textPosIn  += len
-        textPosOut += len
-      else if fwd and type is DIFF_DELETE or not fwd and type is DIFF_INSERT
-        while position? and textPosIn <= position < endTextPosIn
-          positions[posIdx] = Math.max 0, textPosOut - 1
-          position = positions[++posIdx]
-        textPosIn  += len
-      else
-        textPosOut += len
-  positions
-
 load.searchDiffs = (projPath, filePath, idx, inc, searchStr) ->
   if not (path = load.getPath(projPath, filePath).path)
     return positions
@@ -315,4 +282,11 @@ load.searchDiffs = (projPath, filePath, idx, inc, searchStr) ->
       if strData and strData.toLowerCase().indexOf(searchStr) > -1
         return {idx, textPos}
       textPos += diffDataLen
-    
+
+load.text = (projPath, filePath, idx, time) ->
+  if not (path = load.getPath(projPath, filePath).path) then return {text: ''}
+  setPath path
+  idx ?= index.length - 1
+  if idx < 0 then return {text: ''}
+  getTextAndPos idx, time
+

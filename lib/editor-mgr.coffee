@@ -2,7 +2,9 @@
  
 fs            = require 'fs'
 load          = require './load'
+save          = require './save'
 StatusView    = require './status-view'
+# RulerView     = require './ruler-view'
 ReplayView    = require './replay-view'
 dbg           = require('./utils').debug 'edmgr'
 
@@ -12,13 +14,13 @@ class EditorMgr
   @rootDir    = atom.project.getRootDirectory().path
   @editorMgrs = [] 
   
-  constructor: (@app, @editor, @origPath) ->
+  constructor: (@app, @editor, @origPath, viewPos) ->
     cancel = (msg) =>
       dbg msg + ':', @origPath
       @destroy()
       @invalid = yes
       null
-    
+      
     for editorView in atom.workspaceView.getEditorViews()
       if editorView.getEditor() is @editor
         @editorView = editorView
@@ -34,7 +36,7 @@ class EditorMgr
     
     @buffer.isModified = -> no
     @buffer.save       = ->
-    atom.workspaceView.getActivePane().model.promptToSaveItem = -> yes
+    atom.workspaceView.getActivePaneView().model.promptToSaveItem = -> yes
   
     @buffer.on 'contents-modified', =>
       @statusView?.setMsg @getState() 
@@ -53,13 +55,40 @@ class EditorMgr
           when 0 then @goToSrcWin()
           when 1 then @allowEditing = yes
           when 2
-            pos = getViewPos()
+            pos = @getViewPos()
             @buffer.setText @curText
             @setViewPos pos, @editorView
             
     @curText = @buffer.getText()
-    @show()
+    @show viewPos
+
+  getViewPos: ->
+    if not @editorView then return
+    centerLine = Math.ceil((@editorView.getFirstVisibleScreenRow() + 
+                            @editorView.getLastVisibleScreenRow()) / 2)
+    cursPos = @editor.getCursorBufferPosition()
+    [centerLine, cursPos]
+    
+  setViewPos: (pos, view) ->
+    if pos? and view
+      [centerLine, cursPos] = pos
+      dbg 'setViewPos centerLine', centerLine
+      view.getEditor().setCursorBufferPosition cursPos, autoscroll: no
+      view.scrollToBufferPosition [centerLine, 0], center: yes
       
+  getBufOfsFromViewPos: (editor = @editor) ->
+    [centerLine, cursPos] = @getViewPos()
+    buffer     = editor.getBuffer()
+    lineBufOfs = buffer.characterIndexForPosition [centerLine, 0]
+    cursBufOfs = buffer.characterIndexForPosition cursPos
+    [lineBufOfs, cursBufOfs]
+    
+  setViewPosByBufOfs: (lineBufOfs, cursBufOfs, editor = @editor) ->
+    buffer     = editor.getBuffer()
+    centerLine = buffer.positionForCharacterIndex(lineBufOfs).row
+    cursPos    = buffer.positionForCharacterIndex cursBufOfs
+    @setViewPos [centerLine, cursPos], atom.workspaceView.getActiveView()
+
   updateFileInfo: ->
     {path: @archivePath, @dataFileSize} = load.getPath EditorMgr.rootDir, @origPath
     @lastIndex                          = load.lastIndex @archivePath
@@ -82,25 +111,14 @@ class EditorMgr
       return @curIndex
     idx
 
-  getViewPos: ->
-    if not @editorView then return
-    topLine = @editorView.getFirstVisibleScreenRow()
-    cursPos = @editor.getCursorBufferPosition()
-    [topLine, cursPos]
-    
-  setViewPos: (pos, view) ->
-    if pos and view
-      [topLine, cursPos] = pos
-      view.scrollToBufferPosition [topLine+2, 0]
-      view.getEditor().setCursorBufferPosition cursPos
-    
   goToSrcWin: ->
-    pos = @getViewPos()
-    atom.workspaceView.open @origPath
-    setTimeout => 
-      @setViewPos pos, atom.workspaceView.getActiveView()
-    , 500
-    
+    oldBufOfs = @getBufOfsFromViewPos()
+    atom.workspaceView.open(@origPath).then (editor) =>
+      srcText = editor.getBuffer().getText()
+      [lineBufOfs, cursBufOfs] = oldBufOfs
+      {lineBufOfs, cursBufOfs} = save.trackPos @curText, srcText, {lineBufOfs, cursBufOfs}
+      @setViewPosByBufOfs lineBufOfs, cursBufOfs, editor
+      
   revert: ->
     choice = atom.confirm
       message: '    -- Revert source file to this version? --\n'
@@ -127,9 +145,11 @@ class EditorMgr
       @replayView.setBtn 'In Diffs', no
       return
     {inserts, deletes} = load.getDiffs EditorMgr.rootDir, @origPath, @curIndex, yes
-    @inserts = inserts.slice()
-    @deletes = deletes.slice()
-    insertIdx = deleteIdx = 0
+    @inserts   = inserts.slice()
+    @deletes   = deletes.slice()
+    @addCount  = @inserts.length
+    @delCount  = @deletes.length
+    insertIdx  = deleteIdx = 0
     while (ins = inserts[insertIdx]) or (del = deletes[deleteIdx])
       if ins 
         [insBufBegOfs, insBufEndOfs] = ins
@@ -167,7 +187,8 @@ class EditorMgr
             setMarker Range.fromObject([delBegPos, insBegPos]), 'la-delete'
             deletes[deleteIdx][0] = insBufBegOfs
             deleteIdx++
-            
+    @statusView?.setMsg @getState()
+          
   gotoHilite: (down) ->
     @replayView.setBtn 'Hilite', yes
     markers = @editor.findMarkers liveArchive: yes
@@ -192,15 +213,14 @@ class EditorMgr
     atom.workspaceView.focus()
     
   isDiffShowing: ->
-    topLineNum = @editorView.getFirstVisibleScreenRow()
-    topBufPos  = @buffer.characterIndexForPosition [topLineNum, 0]
+    topLine    = @editorView.getFirstVisibleScreenRow()
+    topBufPos  = @buffer.characterIndexForPosition [topLine, 0]
     botLineNum = @editorView.getLastVisibleScreenRow()
     botBufPos  = @buffer.characterIndexForPosition [botLineNum, 0]
     for range in @inserts.concat @deletes
       [beg, end] = range
-      if not (end < topBufPos or beg > botBufPos) then return yes
-    no
-    
+      if not (end < topBufPos or beg > botBufPos) then return
+      
   diffsBtn: (btnOn) ->
     @navDiffs = btnOn
     if btnOn 
@@ -247,7 +267,7 @@ class EditorMgr
       @curIndex
     
   loadEditor: (btn, btnOn, time, val) ->
-    dbg 'loadEditor', {btn, btnOn, val, @curIndex}
+    # dbg 'loadEditor', {btn, btnOn, val, @curIndex}
     @updateFileInfo()
     if not @dataFileSize then return
     
@@ -256,7 +276,7 @@ class EditorMgr
       rtrn = no
       endIdx = null
       idx = switch btn
-        when 'Open'      then @goToSrcWin(); rtrn = yes
+        when 'Source'    then @goToSrcWin(); rtrn = yes
         when 'Revert'    then @revert();     rtrn = yes
         when 'Git'       then endIdx = 0; @findGitHead()
         when '|<'        then endIdx = 0; 0
@@ -272,59 +292,52 @@ class EditorMgr
         when '<srch'     then @search -1, val
         when '>srch'     then @search +1, val
         when 'In Diffs'  then @inDiffsBtn btnOn;           rtrn = yes
-        when 'Sync'      then @syncBtn();                  rtrn = yes
-        when 'Close'     then @goToSrcWin(); EditorMgr.closeAllReplayTabs(); rtrn = yes
+        when 'Sync All'  then @syncBtn();                  rtrn = yes
+        when 'Close All' then @goToSrcWin(); EditorMgr.closeAllReplayTabs(); rtrn = yes
         else                  endIdx = @lastIndex
       if rtrn then return
+    else 
+      idx = @prevIndex ? @lastIndex
+      
+    @time = @lineCount = @addCount = @delCount = null
     
-    if not (firstShowing = not @lineNum?)
-      oldIndex      = @curIndex
-      oldLineNum    = @editorView.getFirstVisibleScreenRow()
-      oldLineBufPos = @buffer.characterIndexForPosition([oldLineNum, 0])
-      oldCursBufPos = @buffer.characterIndexForPosition(@editor.getCursorBufferPosition())
-
-    {text: @curText, index: @curIndex, time} = load.text EditorMgr.rootDir, @origPath, idx
+    oldBufOfs = @getBufOfsFromViewPos()
+    oldText   = @buffer.getText()
+    {text: @curText, index: @curIndex, @time} = load.text EditorMgr.rootDir, @origPath, idx
     @buffer.setText @curText
     
-    if not firstShowing and @navScrl
-        @gotoHilite no
+    @lineCount = 1
+    lfRegEx = new RegExp '\\n', 'g'
+    while lfRegEx.exec @curText then @lineCount++ 
+    
+    if @navScrl then @gotoHilite no
     else if @oneTimeTextPos
       p1 = @buffer.positionForCharacterIndex @oneTimeTextPos
       p2 = @buffer.positionForCharacterIndex @oneTimeTextPos + val.length
       @editor.addSelectionForBufferRange Range.fromObject [p1, p2]
       @editorView.scrollToCursorPosition()
       @oneTimeTextPos = null
-    else
-      if firstShowing
-        @lineNum = 0
-      else
-        [lineBufPos] = load.trackPos EditorMgr.rootDir, @origPath, 
-                                     oldIndex, @curIndex, [oldLineBufPos]
-        @lineNum    = @buffer.positionForCharacterIndex(lineBufPos).row
-        cursBufPos  = oldCursBufPos + lineBufPos - oldLineBufPos
-        @charOfs    = cursBufPos - lineBufPos
-      @editorView.scrollToBufferPosition [@lineNum+2, 0]
-      cursPos = @buffer.positionForCharacterIndex cursBufPos
-      @editor.setCursorBufferPosition cursPos
+    else      
+      [lineBufOfs, cursBufOfs] = oldBufOfs
+      {lineBufOfs, cursBufOfs} = save.trackPos oldText, @curText, {lineBufOfs, cursBufOfs}
+      @setViewPosByBufOfs lineBufOfs, cursBufOfs
       
       if @navDiffs and @curIndex isnt endIdx and not @isDiffShowing() and not time
         @highlightDifferences yes
-        # @statusView?.setMsg @getState()
         @loadEditor btn, btnOn
-        # setTimeout (-> @loadEditor btn, btnOn), 100
         return
-      
+        
+    if @diffHilitesOn then @highlightDifferences yes
     atom.workspaceView.focus()
     @statusView?.setMsg @getState()
-    
-    if @diffHilitesOn then @highlightDifferences yes
-    
+    @prevIndex = @curIndex
+  
   getState: ->
     @updateFileInfo()
-    time = load.getTime @curIndex
-    {time, @curIndex, @lastIndex, @auto}
+    @time = load.getTime @curIndex
+    {@time, @curIndex, @lastIndex, @lineCount, @addCount, @delCount}
     
-  show: ->
+  show: (viewPos) ->
     if @time then @loadEditor null, null, @time
     @time = null
     itemView = atom.workspaceView.getActiveView()
@@ -332,20 +345,24 @@ class EditorMgr
     if @statusView
       @replayView.show()
       @statusView.show()
+      # @rulerView.show()
     else
       #dbg 'creating replay views'
       @statusView = new StatusView @
       paneView.append @statusView
+      # @rulerView = new RulerView @
+      # paneView.append @rulerView
       @replayView = new ReplayView @
       paneView.append @replayView
     paneView.find('.minimap').view()?.updateMinimapView()
     @statusView.setMsg @getState()
     @loadEditor()
+    if viewPos then setTimeout (=> @setViewPos viewPos, @editorView), 100
     
   hide: ->
-    if not @statusView then return
-    @statusView.hide()
-    @replayView.hide()
+    @statusView?.hide()
+    @replayView?.hide()
+    # @rulerView?.hide()
     if (itemView = atom.workspaceView.getActiveView()) and
         (paneView = itemView.closest('.pane').view())
       paneView.find('.minimap').view()?.updateMinimapView()
@@ -354,8 +371,9 @@ class EditorMgr
     if @editor then delete @editor.liveArchiveEditorMgr
     for editorMgr, i in EditorMgr.editorMgrs
       if editorMgr is @ then delete EditorMgr.editorMgrs[i]
-    @statusView?.destroy
-    @replayView?.destroy
+    @statusView?.destroy()
+    @replayView?.destroy()
+    # @rulerView?.destroy()
     
   @hideAll = -> for editorMgr in EditorMgr.editorMgrs then editorMgr?.hide()
 

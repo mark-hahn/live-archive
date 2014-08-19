@@ -1,36 +1,30 @@
 
+behavior ...
+  move down a line after toggling comment
+
 features ... 
   use theme colors
   catch file errors and display and handle
   ruler 
-  btn to set source file to review buf contents
   context menus
-  live line num display
-  first open should use source position 
   switch adding view panes to use workspace funcs
-  tune diff engine
-  fake sync compression
-  show change counts in status view
   nav by diff should use visible screen, not cursor
   auto-save when viewing replay of source with no archive
+  ctrl-alt-a should go back one version when replay showing
 
 bugs ...
   split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
   editor crashes on split up with one source and one replay
-  arrow keys don't work in input element
   stop diff srch on ver showing del marker, not empty next one
   git with diff
-  clip getCursorBufferPosition in screen before nav
-  switching back to replay tab goes to last version
   search in diffs always working?
   
 specs ...
   do atom ui
-  add load.getTime, load.getDiffs, load.lastIndex
+  add load.getTime, load.getDiffs, load.lastIndex, load.searchDiffs, load.trackPos
   
 test ...
-  try forward-only scanning
   test with all themes
   minimap
 - test big unicode chars.

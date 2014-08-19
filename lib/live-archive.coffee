@@ -73,7 +73,7 @@ module.exports =
     if not (@chkProjFolder yes) then return
     editorView = atom.workspaceView.getActiveView()
     if not (editor = editorView?.getEditor?())
-      #dbg 'no editor in this tab'
+      dbg 'no editor in this tab'
       return
     origPath = @pathUtil.normalize editor.getUri()
     dirName  = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
@@ -86,10 +86,14 @@ module.exports =
     if baseName[0..2] is '<- '
       dbg 'you cannot open a review editor for a review file'
       return
+      
+    centerLine = Math.ceil((editorView.getFirstVisibleScreenRow() + 
+                            editorView.getLastVisibleScreenRow()) / 2)
+    cursPos    = editor.getCursorBufferPosition()
     
     atom.workspaceView.open(replayTabPath).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
-        new @EditorMgr @, editor, origPath
+        new @EditorMgr @, editor, origPath, [centerLine, cursPos]
 
   deactivate: -> @EditorMgr.destroyAll()
   

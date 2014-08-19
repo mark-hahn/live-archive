@@ -23,6 +23,7 @@ class StatusView extends View
       @setMsg @editorMgr.getState()
     
   setMsg: (state) ->
+    {@time, @curIndex, @lastIndex, @lineCount, @addCount, @delCount} = state
     @$msgDiv      ?= @find '.msg'
     @$notFoundDiv ?= @find '.not-found'
     {time, curIndex, lastIndex, loadDelay, auto} = state
@@ -31,8 +32,13 @@ class StatusView extends View
     @$msgDiv.html 'Version ' + (curIndex+1) + ' of ' + (lastIndex+1) + 
                   ',&nbsp;&nbsp;&nbsp;&nbsp;Saved&nbsp;&nbsp;' +
                  time.format('ddd') + '&nbsp;&nbsp;' +
-                 time.format('YYYY-MM-DD HH:mm:ss') + ',&nbsp; &nbsp;' +
-                 time.fromNow()
+                 time.format('YYYY-MM-DD HH:mm:ss') + '&nbsp; &nbsp;' +
+                 time.fromNow() + ',&nbsp;&nbsp;&nbsp;&nbsp;' +
+                 'Lines: ' + @lineCount + 
+                 (if @addCount? then '&nbsp;&nbsp;&nbsp;' +
+                                     'Adds: ' + @addCount + ',&nbsp;&nbsp;&nbsp;' +
+                                     'Dels: ' + @delCount + '&nbsp;&nbsp;&nbsp;' \
+                                else '')
                  
 
   destroy: -> @detach()
