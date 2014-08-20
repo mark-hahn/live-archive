@@ -37,12 +37,12 @@
   - All version saves are append-only in a single write
   - Archive can be backed up while in use
 
-### Installation
+### Installation 
 
 - Search for live-archive package in settings
 - or type `apm install live-archive` in command line
 
-### Operation
+### Operation 
   You can open the history tab by pressing `ctrl-alt-A`, using `ctrl-shift-P`, the packages menu, the right-click context menu, or clicking on the `Archive` indicator in the workspace status bar.
   
   When executing this command the first time in a project, a dialog will ask you if you wish to enable live Archive by creating the folder `.live-archive` in the project root.  This folder enables everything and includes all archive files in a directory structure mirroring the project's structure.
@@ -142,6 +142,6 @@
 
   I would like to thank Github and the contributors to Atom/Atom for this great hackable editor.  I would also like to thank all the users on the Atom forum for putting up with my zillion technical questions over the past month.
 
-### Contibutions
+### Contributions
 
-*Please please help!*  I've bitten off a lot to chew here.  The UI design and behvior is new can use a lot of improvement.
+*Please please help!*  I've bitten off a lot to chew here.  The UI design and behavior are new and they can use a lot of improvement.

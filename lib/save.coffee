@@ -172,8 +172,9 @@ save.text = (projPath, filePath, text, base) ->
       dbg 'saving base', {path, base, needs: needsBase[path], empty: (dataFileSize is 0)}
     
     if curText? and dataFileSize 
-      diffList = diffList.concat dmp.diff_main curText, text
-      dmp.diff_cleanupSemantic diffList
+      dmpList = dmp.diff_main curText, text
+      dmp.diff_cleanupSemantic dmpList
+      diffList = diffList.concat dmpList
       
     hasChange = no
     for diff in diffList then if diff[0] isnt 0 then hasChange = yes; break
