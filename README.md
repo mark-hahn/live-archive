@@ -93,9 +93,3 @@
 
 ### To-Do
 - More spec tests (as always)
-
-### testing screenshots in readme
-
-![Navigation Block](screenshots/nav-buttons.jpg)
-
-An image should show above.
