@@ -37,7 +37,8 @@ class ReplayView extends View
       @input 
         placeholder: 'Search Text'
         class: 'native-key-bindings srchInp'
-        style: 'position:relative; top:2px; height: 22px; width: 80px; font-size: 14px'
+        style: 'position:relative; top:2px; height: 22px; width: 80px; 
+                font-size: 14px; font-color: white; background-color: gray'
       @div class:'btn srchBtn', '>'
       @div class:'btn toggle', 'In Diffs'
         

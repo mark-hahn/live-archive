@@ -4,6 +4,9 @@
 
 This project can be found at [https://github.com/mark-hahn/live-archive](https://github.com/mark-hahn/live-archive).
 
+  ![Animated GIF](https://github.com/mark-hahn/live-archive/blob/master/screenshots/live-archive.gif?raw=true)
+
+
 ### Description
 
   When Live Archive is enabled for a project then every save on every file will add that version to an archive.  This happens transparently in the background with no noticeable delay (unless you can perceive 10 ms).  The archive is highly compressed.  The biggest source file in this package has 130 versions stored in an archive file smaller than the actual source file.

@@ -87,6 +87,7 @@ class EditorMgr
   setViewPos: (pos, view) ->
     if pos? and view and (editor = view.getEditor())
       [centerLine, cursPos] = pos
+      centerLine -= 2
       # dbg 'setViewPos centerLine', centerLine
       editor.setCursorBufferPosition cursPos, autoscroll: no
       view.scrollToBufferPosition [centerLine, 0], center: yes
