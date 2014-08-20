@@ -2,6 +2,8 @@
 
 ### Archives project files continuously with easy review of old versions.
 
+This project can be found at [https://github.com/mark-hahn/live-archive](https://github.com/mark-hahn/live-archive).  If the images below are not appearing then please see this GitHub version.
+
 ### Description
 
   When Live Archive is enabled for a project then every save on every file will add that version to an archive.  This happens transparently in the background with no noticeable delay (unless you can perceive 10 ms).  The archive is highly compressed.  The biggest source file in this package has 130 versions stored in an archive file smaller than the actual source file.
@@ -45,7 +47,7 @@
 ### Operation 
   You can open the history tab by pressing `ctrl-alt-A`, using `ctrl-shift-P`, the packages menu, the right-click context menu, or clicking on the `Archive` indicator in the workspace status bar.
   
-  When executing this command the first time in a project, a dialog will ask you if you wish to enable live Archive by creating the folder `.live-archive` in the project root.  This folder enables everything and includes all archive files in a directory structure mirroring the project's structure.
+  When executing this command the first time in a project, a dialog will ask you if you wish to enable Live-Archive by creating the folder `.live-archive` in the project root.  This folder enables everything and includes all archive files in a directory structure mirroring the project's structure.
   
 ### User Interface
 
@@ -54,6 +56,8 @@
   The historical views appear in a single new tab. The name of the tab is the same as the original except that `<-` is prepended. This tab is not an editor for a real file. 
   
 ---
+
+  ![Edit Warning](https://github.com/mark-hahn/live-archive/blob/master/screenshots/edit-history-warning.jpg?raw=true)
 
   ![Edit Warning](screenshots/edit-history-warning.jpg)
   
@@ -78,7 +82,7 @@
 
   ![Source Buttons](screenshots/source-buttons.jpg)
 
-  The first two buttons relate to the original source file.  Like the button in the edit warning, `Source` will switch tabs and take you to the same position in the source file, even if it has to open a tab.  The `Revert` button replaces the contents of the source file pane.  This isn't as dangerous as it may seem because you may use `Undo` in the source tab after reverting.
+  The first two buttons relate to the original source file.  Like the button in the edit warning, `Source` will switch tabs and take you to the same position in the source file, even if it has to open a tab.  The `Revert` button replaces the contents of the source file tab with the historical text in the tab showing.  This isn't as dangerous as it may seem because you may use `Undo` in the source tab after reverting.
   
 ---
 
@@ -136,7 +140,7 @@
 
 ### License
 
-  Live-Arhive is copyrighted under the MIT license.
+  Live-Archive is copyrighted under the MIT license.
 
 ### Credits
 
