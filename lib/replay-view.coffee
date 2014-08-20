@@ -55,12 +55,12 @@ class ReplayView extends View
     if $btn.hasClass 'srchBtn' 
       btn += 'srch'
       val = _.str.trim @srch.val()
-      dbg 'handle',  {val, srchVal: @srch.val()}
+      # dbg 'handle',  {val, srchVal: @srch.val()}
       if not val then return
     if $btn.hasClass 'toggle'
       @btnStates ?= {}
       btnOn = @btnStates[btn] = not @btnStates[btn]
-      dbg 'handle css', {btn, btnOn, $btn}
+      # dbg 'handle css', {btn, btnOn, $btn}
       if btnOn then $btn.addClass 'selected' else $btn.removeClass 'selected'
     @editorMgr.loadEditor btn, btnOn, null, val
     
@@ -69,7 +69,7 @@ class ReplayView extends View
     if $btn.length > 1 then $btn = @find $btn.get(if btn is 'Diff' then 0 else 1)
     @btnStates ?= {}
     @btnStates[btn] = btnOn
-    dbg 'setBtn css', {btn, btnOn, $btn}
+    # dbg 'setBtn css', {btn, btnOn, $btn}
     if btnOn then $btn.addClass 'selected' else $btn.removeClass 'selected'
     @editorMgr.loadEditor btn, btnOn
 

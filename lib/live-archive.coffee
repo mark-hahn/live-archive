@@ -71,8 +71,8 @@ module.exports =
         detailedMessage: 'Error attempting to write to an archive file. \n' + changed
         buttons: ['OK']
 
-    dbg 'save -', buffer.getUri(), '-', Date.now() - start, 'ms',
-             (if not changed then '- noChg' else '')
+    # dbg 'save -', buffer.getUri(), '-', Date.now() - start, 'ms',
+            #  (if not changed then '- noChg' else '')
     @setStatusBarMsg 'Archiving', 2, 1, 'Archive'
 
   openReviewEditor: -> 

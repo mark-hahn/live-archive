@@ -93,3 +93,9 @@
 
 ### To-Do
 - More spec tests (as always)
+
+### testing screenshots in readme
+
+![](/../screenshots/screenshots/nav-buttons.jpg?raw=true "Optional Title")
+
+An image should show above.

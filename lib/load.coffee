@@ -304,6 +304,6 @@ load.text = (projPath, filePath, idx, time) ->
   if idx < 0 then return {text: ''}
   strt = Date.now()
   text = getTextAndPos idx, time
-  dbg 'load text delay ms', Date.now() - strt
+  # dbg 'load text delay ms', Date.now() - strt
   text
 
