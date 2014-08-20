@@ -1,7 +1,7 @@
 {
   "name": "live-archive",
   "main": "./lib/live-archive",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Archives project files continuously with easy review of old versions.",
   "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
