@@ -2,7 +2,7 @@
 
 ### Archives project files continuously with easy review of old versions.
 
-This project can be found at [https://github.com/mark-hahn/live-archive](https://github.com/mark-hahn/live-archive).  If the images below are not appearing then please see this GitHub version.
+This project can be found at [https://github.com/mark-hahn/live-archive](https://github.com/mark-hahn/live-archive).
 
 ### Description
 
@@ -51,26 +51,25 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
   
 ### User Interface
 
-  ![Tabs](screenshots/tabs.jpg)
+  ![Tabs](https://github.com/mark-hahn/live-archive/blob/master/screenshots/tabs.jpg?raw=true)
   
   The historical views appear in a single new tab. The name of the tab is the same as the original except that `<-` is prepended. This tab is not an editor for a real file. 
   
 ---
 
   ![Edit Warning](https://github.com/mark-hahn/live-archive/blob/master/screenshots/edit-history-warning.jpg?raw=true)
-
-  ![Edit Warning](screenshots/edit-history-warning.jpg)
   
   Editing (changing) the historical version is not recommended as it may rip a hole in the fabric of space-time, as many science fiction books will tell you.  However, as you can see in the warning, the `Edit` button allows editing for temporary purposes. If you make changes and close the tab the changes will be lost with no further warning. (Secret hint:  You can save an edited version using `Save As`.)  The `Source` button is very useful.  It takes you back to the original source with the cursor positioned at the place you tried to edit.
   
 ---
 
-  ![Atom Status Bar](screenshots/atom-status-bar.jpg)
+  ![Atom Status Bar](https://github.com/mark-hahn/live-archive/blob/master/screenshots/atom-status-bar.jpg?raw=true)
 
   When Live-Archive is installed the word `Archive` appears in the workspace status bar below all tabs.  This can be clicked to open the historical view.  It also acts as a confidence indicator as it flashes green on every save.  I promise you it isn't annoying.
   
 --- 
-  ![Live Archive Status Bar](screenshots/status-bar.jpg)
+
+  ![Live Archive Status Bar](https://github.com/mark-hahn/live-archive/blob/master/screenshots/status-bar.jpg?raw=true)
 
   Below the historical text is a Live-Archive status bar that give details about the version being shown.
   
@@ -80,13 +79,13 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
   
 ---
 
-  ![Source Buttons](screenshots/source-buttons.jpg)
+  ![Source Buttons](https://github.com/mark-hahn/live-archive/blob/master/screenshots/source-buttons.jpg?raw=true)
 
   The first two buttons relate to the original source file.  Like the button in the edit warning, `Source` will switch tabs and take you to the same position in the source file, even if it has to open a tab.  The `Revert` button replaces the contents of the source file tab with the historical text in the tab showing.  This isn't as dangerous as it may seem because you may use `Undo` in the source tab after reverting.
   
 ---
 
-  ![Navigation Buttons](screenshots/nav-buttons.jpg)
+  ![Navigation Buttons](https://github.com/mark-hahn/live-archive/blob/master/screenshots/nav-buttons.jpg?raw=true)
 
   This is the main bar for navigating through time.  There are the normal VCR-like controls including `<<` and `>>` which hop through multiple versions.  (For the geeks among you they hop a number of versions equal to the square root of the total number of versions.)  
   
@@ -96,7 +95,7 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
   
 ---
 
-  ![Difference Buttons](screenshots/diff-buttons.jpg)
+  ![Difference Buttons](https://github.com/mark-hahn/live-archive/blob/master/screenshots/diff-buttons.jpg?raw=true)
 
   Toggling on the Hilite button will cause differences between neighboring versions to be highlighted.  Inserts are green and deletes are red.  See the image below.  The `^` and `v` buttons let you navigate the highlights in one version like a normal text find.
   
@@ -106,11 +105,11 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
   
   Sample highlights ...
   
-  ![Highlights](screenshots/highlights.jpg)
+  ![Highlights](https://github.com/mark-hahn/live-archive/blob/master/screenshots/highlights.jpg?raw=true)
 
 ---
 
-  ![Difference Buttons](screenshots/search-form.jpg)
+  ![Search](https://github.com/mark-hahn/live-archive/blob/master/screenshots/search-form.jpg?raw=true)
 
   The search box lets you search for a text string through time.  Entering a string and clicking on `<` or `>` will go through versions until a match is found.  The text is also scrolled to show the match.  Note that each version only shows one match.  If you want to see more matches in the one version use the normal text find feature.
   
@@ -118,7 +117,7 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
   
 ---
 
-  ![All Version Tabs Buttons](screenshots/all-history-panes-buttons.jpg)
+  ![All Version Tabs Buttons](https://github.com/mark-hahn/live-archive/blob/master/screenshots/all-history-panes-buttons.jpg?raw=true)
 
   These two buttons affect all open tabs containing version histories.  `Sync All` will cause all history tabs to navigate to the same time as the history tab you are viewing.  The `Close All` button closes all history tabs at once.
 
