@@ -96,6 +96,6 @@
 
 ### testing screenshots in readme
 
-![](/../screenshots/screenshots/nav-buttons.jpg?raw=true "Optional Title")
+![Navigation Block](screenshots/nav-buttons.jpg)
 
 An image should show above.
