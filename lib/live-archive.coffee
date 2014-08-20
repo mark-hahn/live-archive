@@ -65,6 +65,12 @@ module.exports =
     text       = buffer.getText()
     base       = no
     changed    = @save.text @rootDir, buffer.getUri(), text, base
+    if typeof changed is 'string'
+      atom.confirm
+        message: 'Live Archive Package:\n'
+        detailedMessage: 'Error attempting to write to an archive file. \n' + changed
+        buttons: ['OK']
+
     dbg 'save -', buffer.getUri(), '-', Date.now() - start, 'ms',
              (if not changed then '- noChg' else '')
     @setStatusBarMsg 'Archiving', 2, 1, 'Archive'
@@ -80,8 +86,10 @@ module.exports =
     baseName = @pathUtil.basename origPath    # live-archive.coffee
     relPath  = origPath[@rootDir.length+1...] # lib\live-archive.coffee
     dirPath  = @pathUtil.dirname relPath # lib
-    replayTabPath = @pathUtil.normalize @archiveDir + '/' + dirPath + '/<- ' + baseName
+    archDir  = @pathUtil.normalize @archiveDir + '/' + dirPath
+    tabUri   = archDir + '/<- ' + baseName
                     # c:\apps\live-archive/.live-archive/lib/<- live-archive.coffee
+    archFilePath = archDir + '/' +  baseName + '.la'
 
     if baseName[0..2] is '<- '
       dbg 'you cannot open a review editor for a review file'
@@ -91,7 +99,13 @@ module.exports =
                             editorView.getLastVisibleScreenRow()) / 2)
     cursPos    = editor.getCursorBufferPosition()
     
-    atom.workspaceView.open(replayTabPath).then (editor) =>
+    try
+      fileSize = fs.statSync(archFilePath).size
+    catch e
+      fileSize = 0
+    if not fileSize then @archive()
+    
+    atom.workspaceView.open(tabUri).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
         new @EditorMgr @, editor, origPath, [centerLine, cursPos]
 

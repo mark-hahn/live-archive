@@ -1,29 +1,27 @@
 
 features ... 
-  catch file errors and display and handle
-  ruler 
-  context menus
-  switch adding view panes to use workspace funcs
-  auto-save when viewing replay of source with no archive
-  ctrl-alt-a should go back one version when replay showing
 
-behavior ...
-  move down a line after toggling comment
+low priority ...
+  ctrl-alt-a should go back one version when replay showing
+  show busy indicator on slow ops
+
+future ... 
+  ruler
+  switch adding view panes to use workspace funcs?
+  UI for disabling archiving on project
 
 bad behavior ...
   versions with no diff highlighting
   position drifts when navigating
-  splitting panes hides replay dialog
-  split panes -> multiple copies of editmgr
   update dialog when buffer has external changes
   stop diff srch on ver showing del marker, not empty next one
   show something on deletes in actual vers page
 
 bugs ...
-  git with diff
+
+can't reproduce ...
+  ctrl-z until tab empty, cancel edit history warning -> atom closes
   editor crashes on split up with one source and one replay
-  ctrl-z until tab empty and rewrite history warning shows -- press cancel -- atom closes
-  v20 of package.json missing some hiliting
 
 test ...
   test with all themes

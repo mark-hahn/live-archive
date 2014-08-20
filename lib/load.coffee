@@ -5,6 +5,7 @@ zlib       = require 'zlib'
 pathUtil   = require 'path'
 mkdirp     = require 'mkdirp'
 binSrch    = require 'binarysearch'
+save       = require './save'
 dbg        = require('./utils').debug 'load'
 
 DIFF_EQUAL  = 0
@@ -185,7 +186,7 @@ scanForDiffs = (idx, twoIdx) ->
   retrn = diffsForIdx: diffsForOneIdx idx
   if twoIdx then retrn.diffsForNextIdx = diffsForOneIdx idx + 1
   retrn
-        
+      
 getIndexes = (pos) ->
   idx = index.length
   try 
@@ -212,7 +213,7 @@ getIndexes = (pos) ->
       throw new Exception 'corrupt live-archive data at end: ' + dataPath + ', ' + fileSize
   fs.closeSync fd
 
-setPath = (path) ->
+setPath = (path, chkBase) ->
   if path isnt curPath or not fs.existsSync path
     curPath = path
     index = []
@@ -223,6 +224,19 @@ setPath = (path) ->
       
   if path 
     getIndexes(if index.length > 0 then index[index.length-1].fileEndPos else 0)
+   
+  if chkBase and index.length > 0
+    versionsSinceBase = 0
+    sizeSinceBase = null
+    now = Date.now() 
+    totalFileSize = index[index.length-1].fileEndPos
+    for idx in [index.length-1..0] by -1
+      entry = index[idx]
+      if entry.hasBase then break
+      versionsSinceBase++
+      sizeSinceBase = totalFileSize - entry.fileEndPos
+    if sizeSinceBase and (versionsSinceBase > 100 or sizeSinceBase > 10000)
+      save.setNeedsBase path, {versionsSinceBase, sizeSinceBase}
 
 load = exports
 
@@ -285,8 +299,11 @@ load.searchDiffs = (projPath, filePath, idx, inc, searchStr) ->
 
 load.text = (projPath, filePath, idx, time) ->
   if not (path = load.getPath(projPath, filePath).path) then return {text: ''}
-  setPath path
+  setPath path, yes
   idx ?= index.length - 1
   if idx < 0 then return {text: ''}
-  getTextAndPos idx, time
+  strt = Date.now()
+  text = getTextAndPos idx, time
+  dbg 'load text delay ms', Date.now() - strt
+  text
 

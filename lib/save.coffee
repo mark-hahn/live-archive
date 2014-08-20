@@ -17,8 +17,9 @@ DIFF_DELETE = 3
 DIFF_SHIFT  = 4
 DIFF_COMPRESSED_MASK = 0x40
 
-saveTime = 0
-curPath = curText = dataFileSize = curPath = null
+saveTime  = 0
+curPath   = curText = dataFileSize = curPath = null
+needsBase = {}
 
 getUIntVBuf = (num) ->
   num
@@ -153,18 +154,34 @@ save.trackPos = (text1, text2, posIn) ->
     posOut[key] = pos + (textPosOut - textPosIn)
   posOut
   
+save.setNeedsBase = (path, reason) -> 
+  needsBase[path] = reason
+  
 save.text = (projPath, filePath, text, base) ->
-  {path, dataFileSize} = load.getPath projPath, filePath
-  if not path or path is curPath and text is curText then return no
-  if path isnt curPath
-    curPath = path
-    curText = (if path then load.text(projPath, filePath).text)
-  diffList = (if dataFileSize is 0 or base then [[DIFF_BASE, text]] else [])
-  if curText? and dataFileSize 
-    diffList = diffList.concat dmp.diff_main curText, text
-    dmp.diff_cleanupSemantic diffList
-  hasChange = no
-  for diff in diffList then if diff[0] isnt 0 then hasChange = yes; break
-  if hasChange then appendDelta diffList
-  curText = text
-  hasChange
+  try
+    {path, dataFileSize} = load.getPath projPath, filePath
+    if not path or path is curPath and text is curText then return no
+    if path isnt curPath
+      curPath = path
+      curText = (if path then load.text(projPath, filePath).text)
+      
+    needBase = base or (path of needsBase) or (dataFileSize is 0)
+    diffList = (if needBase then [[DIFF_BASE, text]] else [])
+    
+    if needBase 
+      dbg 'saving base', {path, base, needs: needsBase[path], empty: (dataFileSize is 0)}
+    
+    if curText? and dataFileSize 
+      diffList = diffList.concat dmp.diff_main curText, text
+      dmp.diff_cleanupSemantic diffList
+      
+    hasChange = no
+    for diff in diffList then if diff[0] isnt 0 then hasChange = yes; break
+    if hasChange 
+      appendDelta diffList
+      delete needsBase[path]
+
+    curText = text
+    return hasChange
+  catch e
+    return e.message

@@ -1,5 +1,5 @@
 {Range} = require 'atom'
- 
+  
 fs            = require 'fs'
 load          = require './load'
 save          = require './save'
@@ -7,26 +7,27 @@ StatusView    = require './status-view'
 # RulerView     = require './ruler-view'
 ReplayView    = require './replay-view'
 dbg           = require('./utils').debug 'edmgr'
-
+    
 module.exports =
 class EditorMgr
-
+  
   @rootDir    = atom.project.getRootDirectory().path
   @editorMgrs = [] 
-  
+   
   constructor: (@app, @editor, @origPath, viewPos) ->
     cancel = (msg) =>
       dbg msg + ':', @origPath
       @destroy()
       @invalid = yes
       null
-      
+        
     for editorView in atom.workspaceView.getEditorViews()
       if editorView.getEditor() is @editor
         @editorView = editorView
         break
     
     if not @editorView then return cancel 'Unable to find editorView'
+    @editorView.addClass 'live-archive'
     
     @buffer = @editor.getBuffer()
     @editor.liveArchiveEditorMgr = @
@@ -37,6 +38,9 @@ class EditorMgr
     @buffer.isModified = -> no
     @buffer.save       = ->
     atom.workspaceView.getActivePaneView().model.promptToSaveItem = -> yes
+
+    @curText = @buffer.getText()
+    @show viewPos
   
     @buffer.on 'contents-modified', =>
       @statusView?.setMsg @getState() 
@@ -59,9 +63,20 @@ class EditorMgr
             @buffer.setText @curText
             @setViewPos pos, @editorView
             
-    @curText = @buffer.getText()
-    @show viewPos
-
+    splitCommand = (e) =>
+      dbg 'splitCommand', e
+      atom.confirm
+        message: 'Notice:\n'
+        detailedMessage: 'You may not split a history view.'
+        buttons: ['OK']
+      e.stopPropagation()
+      e.preventDefault()
+    
+    @editorView.on 'pane:split-left',  splitCommand
+    @editorView.on 'pane:split-right', splitCommand
+    @editorView.on 'pane:split-up',    splitCommand
+    @editorView.on 'pane:split-down',  splitCommand
+            
   getViewPos: ->
     if not @editorView then return
     centerLine = Math.ceil((@editorView.getFirstVisibleScreenRow() + 
@@ -98,6 +113,8 @@ class EditorMgr
         repo.getPathStatus(@origPath[EditorMgr.rootDir.length+1..]) is 0
       @statusView.setNotFound()
       return @curIndex
+    @replayView.setBtn 'Diff',      no
+
     found = no
     for idx in [@lastIndex..0] by -1
       {text} = load.text EditorMgr.rootDir, @origPath, idx
