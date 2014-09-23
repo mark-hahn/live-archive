@@ -7,7 +7,8 @@ util.debug = (mod) ->
   mod = mod[0..4]
   mod += ':'
   while mod.length < 5 then mod += ' '
-  (args...) -> console.log mod, args...
+  ->
+  # (args...) -> console.log mod, args...
   
 util.callbackWithDelays = (delays, callback) ->
   i = -1

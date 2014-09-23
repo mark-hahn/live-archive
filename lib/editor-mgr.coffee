@@ -1,3 +1,6 @@
+
+# lib\editor-mgr.coffee
+
 {Range} = require 'atom'
   
 fs            = require 'fs'
@@ -398,8 +401,16 @@ class EditorMgr
     @statusView?.destroy()
     @replayView?.destroy()
     # @rulerView?.destroy()
-    
+  
+  close: ->
+    if not (tabBarView = atom.workspaceView.find('.tab-bar').view()) or
+       not (tabView    = tabBarView.find('.tab.active').view())
+      return
+    @destroy()
+    tabBarView.closeTab tabView
+
   @hideAll = -> for editorMgr in EditorMgr.editorMgrs then editorMgr?.hide()
+  
 
   @closeAllReplayTabs = ->
     if not (tabBarView = atom.workspaceView.find('.tab-bar').view())

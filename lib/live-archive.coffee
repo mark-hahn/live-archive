@@ -1,3 +1,4 @@
+# lib\live-archive.coffee
 
 dbg  = require('./utils').debug 'larch'
 
@@ -9,15 +10,15 @@ module.exports =
     @fs            = require 'fs'
     @pathUtil      = require 'path'
     @mkdirp        = require 'mkdirp'
-    @EditorMgr     = require './editor-mgr'
     @save          = require './save'
+    @EditorMgr     = require './editor-mgr'
     @StatusBarView = require './status-bar-view'
-
+ 
     atom.workspaceView.command "core:save",         => @archive()
     atom.workspaceView.command "live-archive:open", => @openReviewEditor()
     
     atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
-      #dbg 'pane-item-changed'
+      dbg 'pane-item-changed 4'
       if not @chkProjFolder() then return
       @EditorMgr.hideAll()
 
@@ -46,8 +47,9 @@ module.exports =
                          'Click "Create" to create the folder and enable live archiving.'
         buttons: ['Create', 'Cancel']
       if choice is 1 then return @noProjFolder()
-      #dbg 'creating ' + @archiveDir
       @mkdirp @archiveDir
+      process.nextTick => @fs.writeFileSync @archiveDir + '/.gitignore', '**\n'
+      
     @setStatusBarMsg 'Archive', 1
     yes
     
@@ -80,6 +82,9 @@ module.exports =
     editorView = atom.workspaceView.getActiveView()
     if not (editor = editorView?.getEditor?())
       dbg 'no editor in this tab'
+      return
+    if (editorMgr = editor.liveArchiveEditorMgr)
+      editorMgr.close()
       return
     origPath = @pathUtil.normalize editor.getUri()
     dirName  = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
