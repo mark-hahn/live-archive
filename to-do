@@ -1,13 +1,12 @@
 
-high priority ...
-  getFirstVisibleScreenRow is screen pos
-  load time is 750ms
 
 low priority ...
   ctrl-alt-a should go back one version when replay showing
   show busy indicator on slow ops
 
 future ... 
+  getFirstVisibleScreenRow is screen pos
+  load time is 750ms
   ruler
   switch adding view panes to use workspace funcs?
   UI for disabling archiving on project
@@ -21,6 +20,7 @@ bad behavior ...
 
 bugs ...
   minimap overlaps
+  cannot open with an empty project or an untitled folder
 
 can't reproduce ...
   ctrl-z until tab empty, cancel edit history warning -> atom closes

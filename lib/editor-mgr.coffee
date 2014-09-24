@@ -4,8 +4,7 @@
 {Range} = require 'atom'
   
 fs            = require 'fs'
-load          = require './load'
-save          = require './save'
+{load, save}  = require 'text-archive-engine'
 StatusView    = require './status-view'
 # RulerView     = require './ruler-view'
 ReplayView    = require './replay-view'
@@ -90,7 +89,7 @@ class EditorMgr
   setViewPos: (pos, view) ->
     if pos? and view and (editor = view.getEditor())
       [centerLine, cursPos] = pos
-      centerLine -= 2
+      centerLine -= 1
       # dbg 'setViewPos centerLine', centerLine
       editor.setCursorBufferPosition cursPos, autoscroll: no
       view.scrollToBufferPosition [centerLine, 0], center: yes

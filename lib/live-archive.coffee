@@ -10,7 +10,7 @@ module.exports =
     @fs            = require 'fs'
     @pathUtil      = require 'path'
     @mkdirp        = require 'mkdirp'
-    @save          = require './save'
+    {@load, @save} = require 'text-archive-engine'
     @EditorMgr     = require './editor-mgr'
     @StatusBarView = require './status-bar-view'
  
