@@ -403,24 +403,21 @@ class EditorMgr
     # @rulerView?.destroy()
   
   close: ->
-    if not (tabBarView = atom.workspaceView.find('.tab-bar').view()) or
-       not (tabView    = tabBarView.find('.tab.active').view())
-      return
+    if not @editor then return
+    @editor.destroy()
     @destroy()
-    tabBarView.closeTab tabView
 
   @hideAll = -> for editorMgr in EditorMgr.editorMgrs then editorMgr?.hide()
   
-
   @closeAllReplayTabs = ->
     if not (tabBarView = atom.workspaceView.find('.tab-bar').view())
       return
     EditorMgr.hideAll()
-    for tabView in tabBarView.getTabs() 
-      if tabView.title.text()[0..2] is '<- ' 
-        tabBarView.closeTab tabView
-    EditorMgr.editorMgrs = []
-  
+    
+    for editor in atom.workspace.getTextEditors()
+      if editor.getTitle().indexOf('<- ') is 0
+        editor.destroy()
+    
   @destroyAll = ->
     for editorMgr in EditorMgr.editorMgrs then editorMgr?.destroy()
     EditorMgr.editorMgrs = []

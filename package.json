@@ -1,12 +1,12 @@
 {
   "name": "live-archive",
   "main": "./lib/live-archive",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Archives project files continuously with easy review of old versions.",
   "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
   "engines": {
-    "atom": ">=0.121.0"
+    "atom": ">=0.127.0"
   },
   "dependencies": {
     "mkdirp":            "0.5.x",
