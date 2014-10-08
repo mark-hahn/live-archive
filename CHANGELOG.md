@@ -1,6 +1,8 @@
-## 0.1.6 - 
+
+## 0.1.6 - 10/8/14
 * Fixed scroll drift when changing versions
 * Moved read/write engine to new module (text-archive-engine)
+* Added announcement to read-me for Git-Diff-Popup companion package
 
 ## 0.1.5 - 9/24/14
 * Fixed live-archive bug with Atom 1.30.0

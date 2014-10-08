@@ -6,8 +6,11 @@ This project can be found at [https://github.com/mark-hahn/live-archive](https:/
 
   ![Animated GIF](https://github.com/mark-hahn/live-archive/blob/master/screenshots/live-archive.gif?raw=true)
 
+### Announcement: 10/8/2014
 
-### Description
+**A new companion package for Live-Archive has just been released.**  It is called Git-Diff-Popup (https://atom.io/packages/git-diff-popup).  It allows viewing old versions of a small section of text in a pop-up directly in the editor. Changing or opening a new tab is not required.  As the title suggests, it works with Git but Live Archives are fully supported.  It is a nice simple small alternative to the powerful version viewer included in Live-Archive and described below.
+
+### Live-Archive Description
 
   When Live Archive is enabled for a project then every save on every file will add that version to an archive.  This happens transparently in the background with no noticeable delay (unless you can perceive 10 ms).  The archive is highly compressed.  The biggest source file in this package has 130 versions stored in an archive file smaller than the actual source file.
   

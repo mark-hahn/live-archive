@@ -1,12 +1,12 @@
 {
   "name": "live-archive",
   "main": "./lib/live-archive",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Archives project files continuously with easy review of old versions.",
   "repository": "https://github.com/mark-hahn/live-archive",
   "license": "MIT",
   "engines": {
-    "atom": ">=0.127.0"
+    "atom": ">=0.130.0"
   },
   "dependencies": {
     "mkdirp":            "0.5.x",
@@ -15,6 +15,6 @@
     "moment":            ">=2.7.0",
     "underscore-plus":   ">=1.5.1",
     "underscore.string": ">=2.3.0",
-    "text-archive-engine": "mark-hahn/text-archive-engine"
+    "text-archive-engine": "mark-hahn/text-archive-engine#0.1.1"
   }
 }
