@@ -4,9 +4,6 @@ dbg  = require('./utils').debug 'larch'
 
 module.exports = 
   activate: ->
-    @rootDir    = atom.project.getRootDirectory().path
-    @archiveDir = @rootDir + '/.live-archive'
-
     @fs            = require 'fs'
     @pathUtil      = require 'path'
     @mkdirp        = require 'mkdirp'
@@ -38,6 +35,8 @@ module.exports =
     no
     
   chkProjFolder: (allowCreate) ->
+    if not (@rootDir ?= atom.project.getRootDirectory()?.path) then return @noProjFolder()
+    @archiveDir = @rootDir + '/.live-archive'
     if not @fs.existsSync @archiveDir
       if not allowCreate then return @noProjFolder()
       choice = atom.confirm
@@ -93,7 +92,6 @@ module.exports =
     dirPath  = @pathUtil.dirname relPath # lib
     archDir  = @pathUtil.normalize @archiveDir + '/' + dirPath
     tabUri   = archDir + '/<- ' + baseName
-                    # c:\apps\live-archive/.live-archive/lib/<- live-archive.coffee
     archFilePath = archDir + '/' +  baseName + '.la'
 
     if baseName[0..2] is '<- '

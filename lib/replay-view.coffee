@@ -32,7 +32,6 @@ class ReplayView extends View
         @div class:'btn toggle', 'Hilite'
         @div class:'btn', '^'
 
-      # @div class: 'btn-group', =>
       @div class:'btn srchBtn', style:'margin-left:15px', '<'
       @input 
         placeholder: 'Search Text'

@@ -8,24 +8,19 @@ future ...
   getFirstVisibleScreenRow is screen pos
   load time is 750ms
   ruler
-  switch adding view panes to use workspace funcs?
   UI for disabling archiving on project
 
 bad behavior ...
   versions with no diff highlighting
-  position drifts when navigating
   update dialog when buffer has external changes
   stop diff srch on ver showing del marker, not empty next one
   show something on deletes in actual vers page
 
 bugs ...
-  minimap overlaps
+  minimap overlaps (use appendBottom)
   cannot open with an empty project or an untitled folder
 
 can't reproduce ...
   ctrl-z until tab empty, cancel edit history warning -> atom closes
   editor crashes on split up with one source and one replay
-
-test ...
-  test with all themes
   

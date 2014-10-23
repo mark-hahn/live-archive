@@ -1,4 +1,7 @@
 
+## 0.1.7 - 10/23/14
+* Fixed error on opening Atom without project folder
+
 ## 0.1.6 - 10/8/14
 * Fixed scroll drift when changing versions
 * Moved read/write engine to new module (text-archive-engine)
