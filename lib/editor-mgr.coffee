@@ -13,10 +13,12 @@ dbg           = require('./utils').debug 'edmgr'
 module.exports =
 class EditorMgr
   
-  @rootDir    = atom.project.getRootDirectory().path
   @editorMgrs = [] 
    
   constructor: (@app, @editor, @origPath, viewPos) ->
+    
+    @rootDir = atom.project.getRootDirectory().path
+    
     cancel = (msg) =>
       dbg msg + ':', @origPath
       @destroy()
@@ -108,19 +110,19 @@ class EditorMgr
     @setViewPos [centerLine, cursPos], atom.workspaceView.getActiveView()
 
   updateFileInfo: ->
-    {path: @archivePath, @dataFileSize} = load.getPath EditorMgr.rootDir, @origPath
+    {path: @archivePath, @dataFileSize} = load.getPath @rootDir, @origPath
     @lastIndex                          = load.lastIndex @archivePath
   
   findGitHead: ->
     if not (repo = atom.project.getRepo()) or
-        repo.getPathStatus(@origPath[EditorMgr.rootDir.length+1..]) is 0
+        repo.getPathStatus(@origPath[@rootDir.length+1..]) is 0
       @statusView.setNotFound()
       return @curIndex
     @replayView.setBtn 'Diff',      no
 
     found = no
     for idx in [@lastIndex..0] by -1
-      {text} = load.text EditorMgr.rootDir, @origPath, idx
+      {text} = load.text @rootDir, @origPath, idx
       if not (diffs = repo.getLineDiffs(@origPath, text))
         idx = @curIndex
         break
@@ -164,7 +166,7 @@ class EditorMgr
       @replayView.setBtn 'Diff',     no
       @replayView.setBtn 'In Diffs', no
       return
-    {inserts, deletes} = load.getDiffs EditorMgr.rootDir, @origPath, @curIndex, yes
+    {inserts, deletes} = load.getDiffs @rootDir, @origPath, @curIndex, yes
     @inserts   = inserts.slice()
     @deletes   = deletes.slice()
     @addCount  = @inserts.length
@@ -275,7 +277,7 @@ class EditorMgr
     searchStr = searchStr.toLowerCase()
     # dbg 'search', inc, searchStr
     if @SrchInDiffs
-      res = load.searchDiffs EditorMgr.rootDir, @origPath,  @curIndex, inc, searchStr
+      res = load.searchDiffs @rootDir, @origPath,  @curIndex, inc, searchStr
       if res
         {idx, textPos: @oneTimeTextPos} = res
         idx
@@ -286,7 +288,7 @@ class EditorMgr
       if not (0 <= strtIdx <= @lastIndex) then return @curIndex
       endIdx = (if inc < 0 then 0 else @lastIndex)
       for idx in [strtIdx..endIdx]
-        {text} = load.text EditorMgr.rootDir, @origPath, idx
+        {text} = load.text @rootDir, @origPath, idx
         if (textPos = text.toLowerCase().indexOf searchStr) > -1
           @oneTimeTextPos = textPos
           return idx
@@ -329,7 +331,7 @@ class EditorMgr
     
     oldBufOfs = @getBufOfsFromViewPos()
     oldText   = @buffer.getText()
-    {text: @curText, index: @curIndex, @time} = load.text EditorMgr.rootDir, @origPath, idx
+    {text: @curText, index: @curIndex, @time} = load.text @rootDir, @origPath, idx
     @buffer.setText @curText
     
     @lineCount = 1
