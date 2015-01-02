@@ -1,4 +1,7 @@
 
+## 0.1.8 - 1/2/15
+* Fixed error on opening review tab
+
 ## 0.1.7 - 10/23/14
 * Fixed error on opening Atom without project folder
 

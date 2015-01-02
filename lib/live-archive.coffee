@@ -1,6 +1,6 @@
 # lib\live-archive.coffee
 
-dbg  = require('./utils').debug 'larch'
+dbg = require('./utils').debug 'larch'
 
 module.exports = 
   activate: ->
@@ -78,29 +78,28 @@ module.exports =
 
   openReviewEditor: -> 
     if not (@chkProjFolder yes) then return
-    editorView = atom.workspaceView.getActiveView()
-    if not (editor = editorView?.getEditor?())
+    if not (editor = atom.workspace.getActiveTextEditor())
       dbg 'no editor in this tab'
       return
     if (editorMgr = editor.liveArchiveEditorMgr)
       editorMgr.close()
       return
-    origPath = @pathUtil.normalize editor.getUri()
-    dirName  = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
-    baseName = @pathUtil.basename origPath    # live-archive.coffee
-    relPath  = origPath[@rootDir.length+1...] # lib\live-archive.coffee
-    dirPath  = @pathUtil.dirname relPath # lib
-    archDir  = @pathUtil.normalize @archiveDir + '/' + dirPath
-    tabUri   = archDir + '/<- ' + baseName
-    archFilePath = archDir + '/' +  baseName + '.la'
+    origPath     = @pathUtil.normalize editor.getPath()
+    dirName      = @pathUtil.dirname  origPath    # c:\apps\live-archive\lib
+    baseName     = @pathUtil.basename origPath    # live-archive.coffee
+    relPath      = origPath[@rootDir.length+1...] # lib\live-archive.coffee
+    dirPath      = @pathUtil.dirname relPath      # lib
+    archDir      = @pathUtil.join @archiveDir,  dirPath
+    tabPath      = @pathUtil.join archDir, '<- ' + baseName
+    archFilePath = @pathUtil.join archDir, baseName + '.la'
 
     if baseName[0..2] is '<- '
       dbg 'you cannot open a review editor for a review file'
       return
       
-    centerLine = Math.ceil((editorView.getFirstVisibleScreenRow() + 
-                            editorView.getLastVisibleScreenRow()) / 2)
-    cursPos    = editor.getCursorBufferPosition()
+    centerLine = Math.ceil((editor.getFirstVisibleScreenRow() + 
+                            editor.getLastVisibleScreenRow()) / 2)
+    cursPos = editor.getCursorBufferPosition()
     
     try
       fileSize = fs.statSync(archFilePath).size
@@ -108,7 +107,7 @@ module.exports =
       fileSize = 0
     if not fileSize then @archive()
     
-    atom.workspaceView.open(tabUri).then (editor) =>
+    atom.workspaceView.open(tabPath).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
         new @EditorMgr @, editor, origPath, [centerLine, cursPos]
 

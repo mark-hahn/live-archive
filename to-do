@@ -1,4 +1,8 @@
 
+bugs ...
+  minimap overlaps (use appendBottom)
+  cannot open with an empty project or an untitled folder
+
 
 low priority ...
   ctrl-alt-a should go back one version when replay showing
@@ -15,10 +19,6 @@ bad behavior ...
   update dialog when buffer has external changes
   stop diff srch on ver showing del marker, not empty next one
   show something on deletes in actual vers page
-
-bugs ...
-  minimap overlaps (use appendBottom)
-  cannot open with an empty project or an untitled folder
 
 can't reproduce ...
   ctrl-z until tab empty, cancel edit history warning -> atom closes
