@@ -1,4 +1,4 @@
-{View} = require 'atom'
+{View} = require 'atom-space-pen-views'
 dbg    = require('./utils').debug 'sbvw'
 
 module.exports =
@@ -10,10 +10,10 @@ class StatusBarView extends View
     @click => @liveArchive.openReviewEditor()
     @msg = @find '.msg'
     do waitForStatusBar = =>
-      if not (sb = atom.workspaceView.statusBar) 
+      if not (statusBar = document.querySelector 'status-bar')
         setTimeout waitForStatusBar, 100
         return
-      sb.appendLeft this
+      statusBar.addLeftTile item: @
 
   hilite: (hilite) -> 
     switch hilite    

@@ -1,26 +1,28 @@
 # lib\live-archive.coffee
 
+{TextEditor, CompositeDisposable} = require 'atom'
+fs  = require 'fs'
 dbg = require('./utils').debug 'larch'
 
 module.exports = 
   activate: ->
+    @subs = new CompositeDisposable
+
     @fs            = require 'fs'
     @pathUtil      = require 'path'
     @mkdirp        = require 'mkdirp'
     {@load, @save} = require 'text-archive-engine'
     @EditorMgr     = require './editor-mgr'
     @StatusBarView = require './status-bar-view'
- 
-    atom.workspaceView.command "core:save",         => @archive()
-    atom.workspaceView.command "live-archive:open", => @openReviewEditor()
     
-    atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
+    @subs.add atom.commands.add 'atom-workspace', "core:save",         => @archive()
+    @subs.add atom.commands.add 'atom-workspace', "live-archive:open", => @openReviewEditor()
+
+    atom.workspace.onDidChangeActivePaneItem (editor) =>
       dbg 'pane-item-changed 4'
       if not @chkProjFolder() then return
       @EditorMgr.hideAll()
-
-      editorView = atom.workspaceView.getActiveView()
-      if not (editor = editorView?.getEditor?())
+      if not editor instanceof TextEditor
         dbg 'no editor in this tab'
         return
       editor.liveArchiveEditorMgr?.show()
@@ -35,7 +37,8 @@ module.exports =
     no
     
   chkProjFolder: (allowCreate) ->
-    if not (@rootDir ?= atom.project.getRootDirectory()?.path) then return @noProjFolder()
+    
+    if not (@rootDir ?= atom.project.getDirectories()[0]?.path) then return @noProjFolder()
     @archiveDir = @rootDir + '/.live-archive'
     if not @fs.existsSync @archiveDir
       if not allowCreate then return @noProjFolder()
@@ -58,8 +61,8 @@ module.exports =
 
   archive: ->
     if not @chkProjFolder() then return
-    editorView = atom.workspaceView.getActiveView()
-    if not (editor = editorView?.getEditor?()) then return
+    editor = atom.workspace.getActivePaneItem()
+    if not editor instanceof TextEditor then return
     buffer = editor.getBuffer() 
     if /(\\|\/)\<\-\s/.test buffer.getUri() then return
     start      = Date.now()
@@ -81,6 +84,7 @@ module.exports =
     if not (editor = atom.workspace.getActiveTextEditor())
       dbg 'no editor in this tab'
       return
+    editorEle = atom.views.getView editor
     if (editorMgr = editor.liveArchiveEditorMgr)
       editorMgr.close()
       return
@@ -97,8 +101,8 @@ module.exports =
       dbg 'you cannot open a review editor for a review file'
       return
       
-    centerLine = Math.ceil((editor.getFirstVisibleScreenRow() + 
-                            editor.getLastVisibleScreenRow()) / 2)
+    centerLine = Math.ceil((editorEle.getFirstVisibleScreenRow() + 
+                            editorEle.getLastVisibleScreenRow()) / 2)
     cursPos = editor.getCursorBufferPosition()
     
     try
@@ -107,9 +111,11 @@ module.exports =
       fileSize = 0
     if not fileSize then @archive()
     
-    atom.workspaceView.open(tabPath).then (editor) =>
+    atom.workspace.open(tabPath).then (editor) =>
       if not (editorMgr = editor.liveArchiveEditorMgr)
         new @EditorMgr @, editor, origPath, [centerLine, cursPos]
 
-  deactivate: -> @EditorMgr.destroyAll()
+  deactivate: -> 
+    @subs.dispose()
+    @EditorMgr.destroyAll()
   

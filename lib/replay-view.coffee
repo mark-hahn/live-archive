@@ -1,4 +1,4 @@
-{View} = require 'atom'
+{View} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
 _.str = require 'underscore.string'
 
@@ -73,6 +73,7 @@ class ReplayView extends View
     if btnOn then $btn.addClass 'selected' else $btn.removeClass 'selected'
     @editorMgr.loadEditor btn, btnOn
 
-  @hideCurrent = -> atom.workspaceView.find('.live-archive-replay').hide()
+  @hideCurrent = -> 
+    atom.workspace.querySelector('.live-archive-replay')?.setAttribute 'display', 'none'
 
   destroy: -> @detach()

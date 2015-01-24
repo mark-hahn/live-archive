@@ -1,4 +1,4 @@
-{View} = require 'atom'
+{View} = require 'atom-space-pen-views'
 util   = require './utils'
 #dbg    = util.debug 'edmgr'
  

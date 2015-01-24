@@ -17,21 +17,19 @@ class EditorMgr
    
   constructor: (@app, @editor, @origPath, viewPos) ->
     
-    @rootDir = atom.project.getRootDirectory().path
+    if not (@rootDir = atom.project.getDirectories()[0]?.path)
+      throw 'no project found for tab' + @origPath
     
     cancel = (msg) =>
       dbg msg + ':', @origPath
       @destroy()
       @invalid = yes
       null
-        
-    for editorView in atom.workspaceView.getEditorViews()
-      if editorView.getEditor() is @editor
-        @editorView = editorView
-        break
+            
+    @editorView = atom.views.getView @editor
+    @editorEle = atom.views.getView @editor
+    @editorEle.classList.add 'live-archive'
     
-    if not @editorView then return cancel 'Unable to find editorView'
-    @editorView.addClass 'live-archive'
     
     @buffer = @editor.getBuffer()
     @editor.liveArchiveEditorMgr = @
@@ -39,33 +37,33 @@ class EditorMgr
     @curIndex = @lastIndex
     EditorMgr.editorMgrs.push @
     
+    @buffer.save = ->
     @buffer.isModified = -> no
-    @buffer.save       = ->
-    atom.workspaceView.getActivePaneView().model.promptToSaveItem = -> yes
+    @editor.shouldPromptToSave = -> no
 
     @curText = @buffer.getText()
     @show viewPos
-  
-    @buffer.on 'contents-modified', =>
-      @statusView?.setMsg @getState() 
-      if @buffer.getText() isnt @curText and not @allowEditing
-        choice = atom.confirm
-          message: '    -- Are you sure you want to modify history? --\n'
-          detailedMessage: 'WARNING: edits will not be saved. ' +
-                           'This is not a file. ' +
-                           'It is OK to edit a history buffer but often you really ' +
-                           'intend to edit the source file. ' +
-                           'Press Source to go to the source file, ' +
-                           'Edit to continue editing, ' +
-                           'or Cancel to undo the edit.'
-          buttons: ['Source', 'Edit', 'Cancel']
-        switch choice
-          when 0 then @goToSrcWin()
-          when 1 then @allowEditing = yes
-          when 2
-            pos = @getViewPos()
-            @buffer.setText @curText
-            @setViewPos pos, @editorView
+    @buffer.onDidStopChanging =>
+      if @buffer.isModified()
+        @statusView?.setMsg @getState() 
+        if @buffer.getText() isnt @curText and not @allowEditing
+          choice = atom.confirm
+            message: '    -- Are you sure you want to modify history? --\n'
+            detailedMessage: 'WARNING: edits will not be saved. ' +
+                             'This is not a file. ' +
+                             'It is OK to edit a history buffer but often you really ' +
+                             'intend to edit the source file. ' +
+                             'Press Source to go to the source file, ' +
+                             'Edit to continue editing, ' +
+                             'or Cancel to undo the edit.'
+            buttons: ['Source', 'Edit', 'Cancel']
+          switch choice
+            when 0 then @goToSrcWin()
+            when 1 then @allowEditing = yes
+            when 2
+              pos = @getViewPos()
+              @buffer.setText @curText
+              @setViewPos pos, @editor
             
     splitCommand = (e) =>
       dbg 'splitCommand', e
@@ -76,25 +74,24 @@ class EditorMgr
       e.stopPropagation()
       e.preventDefault()
     
-    @editorView.on 'pane:split-left',  splitCommand
-    @editorView.on 'pane:split-right', splitCommand
-    @editorView.on 'pane:split-up',    splitCommand
-    @editorView.on 'pane:split-down',  splitCommand
-            
+    @subs.push atom.commands.add @editor, 'pane:split-left':  => @toggle()
+    @subs.push atom.commands.add @editor, 'pane:split-right': => @toggle()
+    @subs.push atom.commands.add @editor, 'pane:split-up':    => @toggle()
+    @subs.push atom.commands.add @editor, 'pane:split-down':  => @toggle()
+
   getViewPos: ->
-    if not @editorView then return
-    centerLine = Math.ceil((@editorView.getFirstVisibleScreenRow() + 
-                            @editorView.getLastVisibleScreenRow()) / 2)
+    if not @editor then return
+    centerLine = Math.ceil((@editorEle.getFirstVisibleScreenRow() + 
+                            @editorEle.getLastVisibleScreenRow()) / 2)
     cursPos = @editor.getCursorBufferPosition()
     [centerLine, cursPos]
     
-  setViewPos: (pos, view) ->
-    if pos? and view and (editor = view.getEditor())
+  setViewPos: (pos, editor) ->
+    if pos? and editor
       [centerLine, cursPos] = pos
       centerLine -= 1
-      # dbg 'setViewPos centerLine', centerLine
       editor.setCursorBufferPosition cursPos, autoscroll: no
-      view.scrollToBufferPosition [centerLine, 0], center: yes
+      editor.scrollToBufferPosition [centerLine, 0], center: yes
       
   getBufOfsFromViewPos: (editor = @editor) ->
     [centerLine, cursPos] = @getViewPos()
@@ -107,7 +104,7 @@ class EditorMgr
     buffer     = editor.getBuffer()
     centerLine = buffer.positionForCharacterIndex(lineBufOfs).row
     cursPos    = buffer.positionForCharacterIndex cursBufOfs
-    @setViewPos [centerLine, cursPos], atom.workspaceView.getActiveView()
+    @setViewPos [centerLine, cursPos], editor
 
   updateFileInfo: ->
     {path: @archivePath, @dataFileSize} = load.getPath @rootDir, @origPath
@@ -135,7 +132,7 @@ class EditorMgr
 
   goToSrcWin: ->
     oldBufOfs = @getBufOfsFromViewPos()
-    atom.workspaceView.open(@origPath).then (editor) =>
+    atom.workspace.open(@origPath).then (editor) =>
       srcText = editor.getBuffer().getText()
       [lineBufOfs, cursBufOfs] = oldBufOfs
       {lineBufOfs, cursBufOfs} = save.trackPos @curText, srcText, {lineBufOfs, cursBufOfs}
@@ -153,7 +150,7 @@ class EditorMgr
       when 0 then return
       when 1
         text = @buffer.getText()
-        atom.workspaceView.open(@origPath).then (editor) -> editor.setText text
+        atom.workspace.open(@origPath).then (editor) -> editor.setText text
         
   highlightDifferences: (btnOn) ->
     @diffHilitesOn = btnOn
@@ -172,7 +169,10 @@ class EditorMgr
     @addCount  = @inserts.length
     @delCount  = @deletes.length
     insertIdx  = deleteIdx = 0
-    while (ins = inserts[insertIdx]) or (del = deletes[deleteIdx])
+    loop 
+      ins = inserts[insertIdx]
+      del = deletes[deleteIdx]
+      if not ins and not del then break
       if ins 
         [insBufBegOfs, insBufEndOfs] = ins
         insBegPos = @buffer.positionForCharacterIndex insBufBegOfs
@@ -237,12 +237,12 @@ class EditorMgr
     if closestBufPos > charsInBuf then closestBufPos -= charsInBuf
     if closestBufPos < 0          then closestBufPos += charsInBuf
     @editor.setCursorBufferPosition @buffer.positionForCharacterIndex closestBufPos
-    atom.workspaceView.focus()
+    atom.views.getView(atom.workspace).focus()
     
   isDiffShowing: ->
-    topLine    = @editorView.getFirstVisibleScreenRow()
+    topLine    = @editorEle.getFirstVisibleScreenRow()
     topBufPos  = @buffer.characterIndexForPosition [topLine, 0]
-    botLineNum = @editorView.getLastVisibleScreenRow()
+    botLineNum = @editorEle.getLastVisibleScreenRow()
     botBufPos  = @buffer.characterIndexForPosition [botLineNum, 0]
     for range in @inserts.concat @deletes
       [beg, end] = range
@@ -343,7 +343,7 @@ class EditorMgr
       p1 = @buffer.positionForCharacterIndex @oneTimeTextPos
       p2 = @buffer.positionForCharacterIndex @oneTimeTextPos + val.length
       @editor.addSelectionForBufferRange Range.fromObject [p1, p2]
-      @editorView.scrollToCursorPosition()
+      @editor.scrollToCursorPosition()
       @oneTimeTextPos = null
     else      
       [lineBufOfs, cursBufOfs] = oldBufOfs
@@ -356,7 +356,7 @@ class EditorMgr
         return
         
     if @diffHilitesOn then @highlightDifferences yes
-    atom.workspaceView.focus()
+    atom.views.getView(atom.workspace).focus()
     @statusView?.setMsg @getState()
     @prevIndex = @curIndex
   
@@ -368,33 +368,30 @@ class EditorMgr
   show: (viewPos) ->
     if @time then @loadEditor null, null, @time
     @time = null
-    itemView = atom.workspaceView.getActiveView()
-    paneView = itemView.closest('.pane').view()
+    pane = atom.views.getView atom.workspace.paneForItem @editor
     if @statusView
       @replayView.show()
       @statusView.show()
-      # @rulerView.show()
     else
       #dbg 'creating replay views'
       @statusView = new StatusView @
-      paneView.append @statusView
-      # @rulerView = new RulerView @
-      # paneView.append @rulerView
+      pane.appendChild @statusView[0]
       @replayView = new ReplayView @
-      paneView.append @replayView
-    paneView.find('.minimap').view()?.updateMinimapView()
+      pane.appendChild @replayView[0]
+    
     @statusView.setMsg @getState()
     @loadEditor()
-    if viewPos then setTimeout (=> @setViewPos viewPos, @editorView), 100
-    
+    if viewPos then setTimeout (=> @setViewPos viewPos, @editor), 100
+    # process.nextTick =>
+    #   pane.querySelector('.minimap')?.spacePenView.updateMinimapView()
+
   hide: ->
     @statusView?.hide()
     @replayView?.hide()
-    # @rulerView?.hide()
-    if (itemView = atom.workspaceView.getActiveView()) and
-        (paneView = itemView.closest('.pane').view())
-      paneView.find('.minimap').view()?.updateMinimapView()
-      
+    # process.nextTick =>
+    #   pane = atom.views.getView atom.workspace.paneForItem @editor
+    #   pane.querySelector('.minimap')?.spacePenView.updateMinimapView()
+
   destroy: ->
     if @editor then delete @editor.liveArchiveEditorMgr
     for editorMgr, i in EditorMgr.editorMgrs
@@ -402,19 +399,17 @@ class EditorMgr
     @statusView?.destroy()
     @replayView?.destroy()
     # @rulerView?.destroy()
-  
+
   close: ->
-    if not @editor then return
-    @editor.destroy()
+    @editor?.destroy()
     @destroy()
 
   @hideAll = -> for editorMgr in EditorMgr.editorMgrs then editorMgr?.hide()
   
   @closeAllReplayTabs = ->
-    if not (tabBarView = atom.workspaceView.find('.tab-bar').view())
-      return
+    workspaceElement = atom.views.getView atom.workspace
+    if not workspaceElement.querySelector '.tab-bar' then return
     EditorMgr.hideAll()
-    
     for editor in atom.workspace.getTextEditors()
       if editor.getTitle().indexOf('<- ') is 0
         editor.destroy()
