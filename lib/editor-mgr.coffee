@@ -154,15 +154,20 @@ class EditorMgr
         
   highlightDifferences: (btnOn) ->
     @diffHilitesOn = btnOn
-    setMarker = (range, klass) =>
-      marker = @buffer.markRange range, liveArchive: yes
+      
+    setMarker = (begOfs, endOfs, klass) =>
+      begPos = @buffer.positionForCharacterIndex begOfs
+      endPos = @buffer.positionForCharacterIndex endOfs
+      marker = @buffer.markRange [begPos, endPos], liveArchive: yes
       @editor.decorateMarker marker, type: 'highlight', class: klass
+
     marker.destroy() for marker in @editor.findMarkers liveArchive: yes
     if not btnOn 
       @replayView.setBtn 'Scrl',     no
       @replayView.setBtn 'Diff',     no
       @replayView.setBtn 'In Diffs', no
       return
+      
     {inserts, deletes} = load.getDiffs @rootDir, @origPath, @curIndex, yes
     @inserts   = inserts.slice()
     @deletes   = deletes.slice()
@@ -173,47 +178,68 @@ class EditorMgr
       ins = inserts[insertIdx]
       del = deletes[deleteIdx]
       if not ins and not del then break
-      if ins 
-        [insBufBegOfs, insBufEndOfs] = ins
-        insBegPos = @buffer.positionForCharacterIndex insBufBegOfs
-        insEndPos = @buffer.positionForCharacterIndex insBufEndOfs
-        insRange  = Range.fromObject [insBegPos, insEndPos]
-        if not del then setMarker insRange, 'la-insert'; insertIdx++; continue
+      if ins
+        [ib, ie] = ins
+        if not del
+          setMarker ib, ie, 'la-insert'
+          insertIdx++
+          continue
       if del 
-        [delBufBegOfs, delBufEndOfs] = del
-        delBegPos = @buffer.positionForCharacterIndex delBufBegOfs
-        delEndPos = @buffer.positionForCharacterIndex delBufEndOfs
-        delRange  = Range.fromObject [delBegPos, delEndPos]
-        if not ins then setMarker delRange, 'la-delete'; deleteIdx++; continue
-      switch insRange.compare delRange
-        when  0 
-          setMarker insRange, 'la-insert'
-          setMarker insRange, 'la-delete'
-          insertIdx++; deleteIdx++
-        when -1
-          if insBufEndOfs <= delBufBegOfs # ins totally before del
-            setMarker insRange, 'la-insert'; insertIdx++; continue
-          if insBegPos is delBegPos # del end before ins end
-            setMarker Range.fromObject([insBegPos, delEndPos]), 'la-insert'
-            setMarker Range.fromObject([insBegPos, delEndPos]), 'la-delete'
-            inserts[insertIdx][0] = delBufEndOfs
-            deleteIdx++
-          else    # ins beg before del beg
-            setMarker Range.fromObject([insBegPos, delBegPos]), 'la-insert'
-            inserts[insertIdx][0] = delBufBegOfs
-            insertIdx++
-        when +1
-          if delBufEndOfs <= insBufBegOfs # del totally before ins
-            setMarker delRange, 'la-delete'; deleteIdx++; continue
-          if delBegPos is insBegPos # ins end before del end
-            setMarker Range.fromObject([delBegPos, insEndPos]), 'la-insert'
-            setMarker Range.fromObject([delBegPos, insEndPos]), 'la-delete'
-            deletes[deleteIdx][0] = insBufEndOfs
-            insertIdx++
-          else    # del beg before ins beg
-            setMarker Range.fromObject([delBegPos, insBegPos]), 'la-delete'
-            deletes[deleteIdx][0] = insBufBegOfs
-            deleteIdx++
+        [db, de] = del
+        if not ins 
+          setMarker db, de, 'la-delete'
+          deleteIdx++
+          continue
+      if ie <= db
+        # ins  xxx
+        # del     xxx
+        setMarker ib, ie, 'la-insert'
+        insertIdx++
+        continue
+      if de <= ib
+        # ins     xxx
+        # del  xxx
+        setMarker db, de, 'la-delete'
+        deleteIdx++
+        continue
+      cmpBeg = switch
+        when ib  < db then 10
+        when ib is db then 20
+        when ib  > db then 30
+      cmpEnd = switch
+        when ie  < de then  1
+        when ie is de then  2
+        when ie  > de then  3
+      switch cmpBeg + cmpEnd
+        when 11, 12, 13
+          # ins  xxx    # ins  xxx   # ins  xxxx
+          # del   xxx   # del   xx   # del   xx
+          setMarker ib, db, 'la-insert'
+          inserts[insertIdx][0] = db
+        when 21
+          # ins  xxx
+          # del  xxxx
+          setMarker ib, ie, 'la-replace'
+          insertIdx++
+          deletes[deleteIdx][0] = ie
+        when 22
+          # ins  xxx
+          # del  xxx
+          setMarker ib, ie, 'la-replace'
+          insertIdx++
+          deleteIdx++
+        when 23
+          # ins  xxxx
+          # del  xxx
+          setMarker db, de, 'la-replace'
+          inserts[insertIdx][0] = de
+          deleteIdx++
+        when 31, 32,33
+          # ins   xx    # ins   xxx   # ins   xxx
+          # del  xxxx   # del  xxxx   # del  xxx
+          setMarker db, ib, 'la-delete'
+          deletes[deleteIdx][0] = ib
+
     @statusView?.setMsg @getState()
           
   gotoHilite: (down) ->

@@ -1,4 +1,8 @@
 
+## 0.1.9 - 1/24/15
+* Fixed deprecations
+* Fixed highlighting
+
 ## 0.1.8 - 1/2/15
 * Fixed error on opening review tab
 
