@@ -1,4 +1,7 @@
 
+## 0.1.10 - 1/26/15
+* Fixed non-editor tab bug
+
 ## 0.1.9 - 1/24/15
 * Fixed deprecations
 * Fixed highlighting

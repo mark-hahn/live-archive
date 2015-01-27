@@ -25,7 +25,7 @@ module.exports =
       if not editor instanceof TextEditor
         dbg 'no editor in this tab'
         return
-      editor.liveArchiveEditorMgr?.show()
+      editor?.liveArchiveEditorMgr?.show()
       
     @setStatusBarMsg 'Archive', 1
     setTimeout =>
