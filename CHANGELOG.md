@@ -1,4 +1,7 @@
 
+## 0.1.11 - 2/19/15
+* Moved text-archive-engine to npm
+
 ## 0.1.10 - 1/26/15
 * Fixed non-editor tab bug
 
