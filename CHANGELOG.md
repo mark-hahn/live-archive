@@ -1,4 +1,7 @@
 
+## 0.1.12 - 2/25/15
+* Fixed keybinding deprecations
+
 ## 0.1.11 - 2/19/15
 * Moved text-archive-engine to npm
 

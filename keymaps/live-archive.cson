@@ -1,2 +1,2 @@
-'.workspace .editor':
+'atom-workspace atom-text-editor':
   'ctrl-alt-a': 'live-archive:open'
