@@ -49,7 +49,7 @@ module.exports =
                          'Click "Create" to create the folder and enable live archiving.'
         buttons: ['Create', 'Cancel']
       if choice is 1 then return @noProjFolder()
-      @mkdirp @archiveDir
+      @mkdirp.sync @archiveDir
       process.nextTick => @fs.writeFileSync @archiveDir + '/.gitignore', '**\n'
       
     @setStatusBarMsg 'Archive', 1

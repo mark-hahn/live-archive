@@ -1,4 +1,7 @@
 
+## 0.1.13 - 2/28/15
+* Fixed mkdirp race when creating .live-archive
+
 ## 0.1.12 - 2/25/15
 * Fixed keybinding deprecations
 
