@@ -3,7 +3,7 @@
 {TextEditor, CompositeDisposable} = require 'atom'
 fs  = require 'fs'
 dbg = require('./utils').debug 'larch'
-
+  
 module.exports = 
   activate: ->
     @subs = new CompositeDisposable

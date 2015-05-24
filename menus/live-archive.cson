@@ -1,16 +1,15 @@
-# See https://atom.io/docs/latest/creating-a-package#menus for more details
-'context-menu':
-  '.overlayer':
-      'Open Live Archive': 'live-archive:open'
+'atom-workspace': [
+  label: 'Open Live Archive'
+  command: 'live-archive:open'
+]
 
-'menu': [
-  {
-    'label': 'Packages'
-    'submenu': [
-      'label': 'Live Archive'
-      'submenu': [
-        { 'label': 'Open', 'command': 'live-archive:open' }
-      ]
+menu: [
+  label: 'Packages'
+  submenu: [
+      label: 'Live Archive'
+      submenu: [
+        label: 'Open'
+        command: 'live-archive:open'
     ]
-  }
+  ]
 ]
