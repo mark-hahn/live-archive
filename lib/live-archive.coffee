@@ -61,8 +61,7 @@ module.exports =
 
   archive: ->
     if not @chkProjFolder() then return
-    editor = atom.workspace.getActivePaneItem()
-    if not editor instanceof TextEditor then return
+    if not (editor = atom.workspace.getActiveTextEditor()) then return
     buffer = editor.getBuffer() 
     if /(\\|\/)\<\-\s/.test buffer.getUri() then return
     start      = Date.now()

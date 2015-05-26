@@ -1,4 +1,7 @@
 
+### 0.1.15 - 5/26/15
+* exception on non-editor tab
+
 ### 0.1.14 - 5/24/15
 * stylesheets -> styles
 * Fixed menu format
