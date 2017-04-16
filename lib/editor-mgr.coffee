@@ -74,11 +74,15 @@ class EditorMgr
       e.stopPropagation()
       e.preventDefault()
     
-    @subs.push atom.commands.add @editor, 'pane:split-left':  => @toggle()
-    @subs.push atom.commands.add @editor, 'pane:split-right': => @toggle()
-    @subs.push atom.commands.add @editor, 'pane:split-up':    => @toggle()
-    @subs.push atom.commands.add @editor, 'pane:split-down':  => @toggle()
 
+    @app.subs.add atom.commands.add @editor.editorElement, 'pane:split-left',  => @toggle()
+    @app.subs.add atom.commands.add @editor.editorElement, 'pane:split-right', => @toggle()
+    @app.subs.add atom.commands.add @editor.editorElement, 'pane:split-up',    => @toggle()
+    @app.subs.add atom.commands.add @editor.editorElement, 'pane:split-down',  => @toggle()
+
+  toggle: ->
+    # TODO: implement?
+    console.log 'toggle!'
   getViewPos: ->
     if not @editor then return
     centerLine = Math.ceil((@editorEle.getFirstVisibleScreenRow() + 
@@ -111,7 +115,7 @@ class EditorMgr
     @lastIndex                          = load.lastIndex @archivePath
   
   findGitHead: ->
-    if not (repo = atom.project.getRepo()) or
+    if not (repo = atom.project.getRepositories()[0]) or
         repo.getPathStatus(@origPath[@rootDir.length+1..]) is 0
       @statusView.setNotFound()
       return @curIndex
