@@ -1,3 +1,7 @@
+### 0.1.16 - 5/26/15
+* Fixed "getRepo" to "getRepositories" to fix GIT button
+* Fixed editor commands error (still needs toggle() implementation)
+* Fixed outdated css
 
 ### 0.1.15 - 5/26/15
 * exception on non-editor tab
